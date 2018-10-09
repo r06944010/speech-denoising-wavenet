@@ -36,7 +36,7 @@
         "type": "adam"
     },
     "training": {
-        "batch_size": 32,
+        "batch_size": 10,
         "early_stopping_patience": 16,
         "loss": {
             "out_1": {
