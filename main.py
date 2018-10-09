@@ -11,7 +11,6 @@ import datasets
 import util
 import denoise
 
-
 def set_system_settings():
     sys.setrecursionlimit(50000)
     logging.getLogger().setLevel(logging.INFO)
@@ -64,6 +63,8 @@ def get_dataset(config, model):
         return datasets.VCTKAndDEMANDDataset(config, model).load_dataset()
     elif config['dataset']['type'] == 'nsdtsea':
         return datasets.NSDTSEADataset(config, model).load_dataset()
+    elif config['dataset']['type'] == 'wsj0-mix':
+        return datasets.WSJ0(config, model).load_dataset()
 
 
 def training(config, cla):
@@ -73,11 +74,11 @@ def training(config, cla):
     dataset = get_dataset(config, model)
 
     num_train_samples = config['training']['num_train_samples']
-    num_test_samples = config['training']['num_test_samples']
+    num_valid_samples = config['training']['num_valid_samples']
     train_set_generator = dataset.get_random_batch_generator('train')
-    test_set_generator = dataset.get_random_batch_generator('test')
+    valid_set_generator = dataset.get_random_batch_generator('valid')
 
-    model.fit_model(train_set_generator, num_train_samples, test_set_generator, num_test_samples,
+    model.fit_model(train_set_generator, 20000//32, valid_set_generator, 5000//32,
                           config['training']['num_epochs'])
 
 
@@ -106,9 +107,9 @@ def inference(config, cla):
     if not bool(cla.one_shot):
         model = models.DenoisingWavenet(config, target_field_length=cla.target_field_length,
                                         load_checkpoint=cla.load_checkpoint, print_model_summary=cla.print_model_summary)
-        print 'Performing inference..'
+        print('Performing inference..')
     else:
-        print 'Performing one-shot inference..'
+        print('Performing one-shot inference..')
 
     samples_folder_path = os.path.join(config['training']['path'], 'samples')
     output_folder_path = get_valid_output_folder_path(samples_folder_path)
@@ -146,9 +147,10 @@ def inference(config, cla):
                 input['noisy'] = input['noisy'][:-1]
                 if input['clean'] is not None:
                     input['clean'] = input['clean'][:-1]
-            model = models.DenoisingWavenet(config, load_checkpoint=cla.load_checkpoint, input_length=len(input['noisy']), print_model_summary=cla.print_model_summary)
+            model = models.DenoisingWavenet(config, load_checkpoint=cla.load_checkpoint, input_length=len(input['noisy']), \
+                                            print_model_summary=cla.print_model_summary)
 
-        print "Denoising: " + filename
+        print("Denoising: " + filename)
         denoise.denoise_sample(model, input, condition_input, batch_size, output_filename_prefix,
                                             config['dataset']['sample_rate'], output_folder_path)
 

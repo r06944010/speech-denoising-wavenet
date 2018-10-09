@@ -6,6 +6,9 @@ import keras
 
 class AddSingletonDepth(keras.layers.Layer):
 
+    def __init__(self, **kwargs):
+        super(AddSingletonDepth, self).__init__(**kwargs)
+
     def call(self, x, mask=None):
         x = keras.backend.expand_dims(x, -1)  # add a dimension of the right
 
@@ -14,11 +17,11 @@ class AddSingletonDepth(keras.layers.Layer):
         else:
             return x
 
-    def get_output_shape_for(self, input_shape):
+    def compute_output_shape(self, input_shape):
         if len(input_shape) == 3:
-            return input_shape[0], 1, input_shape[1], input_shape[2]
+            return (input_shape[0], input_shape[1], input_shape[2])
         else:
-            return input_shape[0], input_shape[1], 1
+            return (input_shape[0], input_shape[1], 1)
 
 
 class Subtract(keras.layers.Layer):
@@ -29,8 +32,8 @@ class Subtract(keras.layers.Layer):
     def call(self, x, mask=None):
         return x[0] - x[1]
 
-    def get_output_shape_for(self, input_shape):
-        return input_shape[0]
+    def compute_output_shape(self, input_shape):
+        return (input_shape[0])
 
 
 class Slice(keras.layers.Layer):
@@ -40,8 +43,8 @@ class Slice(keras.layers.Layer):
         self.desired_output_shape = output_shape
         super(Slice, self).__init__(**kwargs)
 
-    def call(self, x, mask=None):
 
+    def call(self, x, mask=None):
         selector = self.selector
         if len(self.selector) == 2 and not type(self.selector[1]) is slice and not type(self.selector[1]) is int:
             x = keras.backend.permute_dimensions(x, [0, 2, 1])
@@ -55,7 +58,7 @@ class Slice(keras.layers.Layer):
         return y
 
 
-    def get_output_shape_for(self, input_shape):
+    def compute_output_shape(self, input_shape):
 
         output_shape = (None,)
         for i, dim_length in enumerate(self.desired_output_shape):

@@ -1,13 +1,13 @@
 {
     "dataset": {
-        "extract_voice": true,
+        "extract_voice": false,
         "in_memory_percentage": 1,
-        "noise_only_percent": 0.1,
-        "num_condition_classes": 29,
+        "noise_only_percent": 0.0,
+        "num_condition_classes": 0,
         "path": "data/NSDTSEA/",
         "regain": 0.06,
-        "sample_rate": 16000,
-        "type": "nsdtsea"
+        "sample_rate": 8000,
+        "type": "wsj0-mix"
     },
     "model": {
         "condition_encoding": "binary",
@@ -36,7 +36,7 @@
         "type": "adam"
     },
     "training": {
-        "batch_size": 10,
+        "batch_size": 32,
         "early_stopping_patience": 16,
         "loss": {
             "out_1": {
@@ -50,9 +50,10 @@
                 "weight": 1
             }
         },
-        "num_epochs": 250,
-        "num_test_samples": 100,
-        "num_train_samples": 1000,
+        "num_epochs": 150,
+        "num_test_samples" : 3000,
+        "num_valid_samples": 5000,
+        "num_train_samples": 20000,
         "path": "sessions/002",
         "verbosity": 1
     }

@@ -15,16 +15,16 @@ def l1_l2_loss(y_true, y_pred, l1_weight, l2_weight):
     loss = 0
 
     if l1_weight != 0:
-        loss += l1_weight*keras.objectives.mean_absolute_error(y_true, y_pred)
+        loss += l1_weight*keras.losses.mean_absolute_error(y_true, y_pred)
 
     if l2_weight != 0:
-        loss += l2_weight * keras.objectives.mean_squared_error(y_true, y_pred)
+        loss += l2_weight * keras.losses.mean_squared_error(y_true, y_pred)
 
     return loss
 
 
 def compute_receptive_field_length(stacks, dilations, filter_length, target_field_length):
-
+    # stacks:3, dilations:[1,2,...,512], filter_length:3, target_field_length:1
     half_filter_length = (filter_length-1)/2
     length = 0
     for d in dilations:
@@ -156,7 +156,7 @@ def get_subdict_from_dict(keys, dictionary):
 def pretty_json_dump(values, file_path=None):
 
     if file_path is None:
-        print json.dumps(values, sort_keys=True, indent=4, separators=(',', ': '))
+        print(json.dumps(values, sort_keys=True, indent=4, separators=(',', ': ')))
     else:
         json.dump(values, open(file_path, 'w'), sort_keys=True, indent=4, separators=(',', ': '))
 
@@ -212,12 +212,12 @@ def get_subsequence_with_speech_indices(full_sequence):
     chunk_length = 800
 
     chunks_energies = []
-    for i in xrange(0, len(signal_magnitude), chunk_length):
+    for i in range(0, len(signal_magnitude), chunk_length):
         chunks_energies.append(np.mean(signal_magnitude[i:i + chunk_length]))
 
     threshold = np.max(chunks_energies) * .1
 
-    onset_chunk_i = 0
+    onset_chunk_i = 0 # begin of speech > max energy * 0.1
     for i in range(0, len(chunks_energies)):
         if chunks_energies[i] >= threshold:
             onset_chunk_i = i
