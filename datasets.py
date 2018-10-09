@@ -80,8 +80,8 @@ class WSJ0():
                            filename.split('/')[-1].split('_')[2][:3]
             if speaker_name not in speakers:
                 speakers.append(speaker_name)
-            sequence = util.load_wav(filename, self.sample_rate)
-            sequences.append(sequence)
+            # sequence = util.load_wav(filename, self.sample_rate)
+            # sequences.append(sequence)
             self.num_sequences_in_memory += 1
             # regain_factors.append(self.regain / util.rms(sequence))
 
@@ -107,7 +107,12 @@ class WSJ0():
                 self.sequences[set][condition][sequence_num] = sequence
                 self.num_sequences_in_memory += 1
         else:
-            sequence = self.sequences[set][condition][sequence_num]
+            files = self.file_paths[set][condition][sequence_num]
+            sequence = []
+            for f in files:
+                s = util.load_wav(f, self.sample_rate)
+                sequence.append(s)
+            # sequence = self.sequences[set][condition][sequence_num]
 
         return np.array(sequence)
 
