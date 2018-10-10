@@ -222,9 +222,12 @@ class DenoisingWavenet():
 
     def build_model(self):
         data_input = keras.layers.Input(
-                shape=(self.input_length,),
+                shape=(2, self.input_length,),
                 name='data_input')
-
+        print(data_input)
+        data_input = keras.backend.sum(data_input, axis=1)
+        print(data_input)
+        exit()
         # condition_input = keras.engine.Input(shape=(self.condition_input_length,),
                                              # name='condition_input')
         data_expanded = layers.AddSingletonDepth()(data_input)
@@ -298,7 +301,8 @@ class DenoisingWavenet():
         # out_speech_2 = keras.layers.Lambda(lambda x: x[:,:,1],
                                               # output_shape=lambda shape: (shape[0], shape[1]), 
                                               # name='data_output_2')(data_out)
-
+        ## add discriminator
+        
         return keras.engine.Model(inputs=[data_input], outputs=[out_speech])
 
     def dilated_residual_block(self, data_x, res_block_i, layer_i, dilation, stack_i):

@@ -78,8 +78,8 @@ def training(config, cla):
     train_set_generator = dataset.get_random_batch_generator('train')
     valid_set_generator = dataset.get_random_batch_generator('valid')
 
-    model.fit_model(train_set_generator, 20000//32, valid_set_generator, 5000//32,
-                          config['training']['num_epochs'])
+    model.fit_model(train_set_generator, 20000//config['training']['batch_size'], valid_set_generator, 
+                    5000//config['training']['batch_size'], config['training']['num_epochs'])
 
 
 def get_valid_output_folder_path(outputs_folder_path):

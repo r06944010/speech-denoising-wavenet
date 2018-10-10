@@ -127,11 +127,8 @@ class WSJ0():
         while True:
             sample_indices = indices[beg:beg+self.batch_size]
             beg += self.batch_size
-            condition_inputs = []
-            batch_inputs = []
-            batch_outputs_1 = []
-            batch_outputs_2 = []
-            batch_out = []
+            # condition_inputs = []
+            batch = []
 
             for i, sample_i in enumerate(sample_indices):
                 speech_a = self.retrieve_sequence(set, 'a', sample_i)
@@ -143,18 +140,14 @@ class WSJ0():
 
                 output_a = speech_a[offset:offset + self.model.input_length]
                 output_b = speech_b[offset:offset + self.model.input_length]
-                input = mix[offset:offset + self.model.input_length]
-
 
                 # if self.noise_only_percent > 0:
                 #     if np.random.uniform(0, 1) <= self.noise_only_percent:
                 #         input = output_noise #Noise only
                 #         output_speech = np.array([0] * self.model.input_length) #Silence
 
-                batch_inputs.append(input)
-                batch_out.append([output_a, output_b])
-                batch_outputs_1.append(output_a)
-                batch_outputs_2.append(output_b)
+                # batch_inputs.append([output_a, output_b])
+                batch.append([output_a, output_b])
                 # if np.random.uniform(0, 1) <= 1.0 / self.get_num_condition_classes():
                 #     condition_input = 0
                 # else:
@@ -164,19 +157,12 @@ class WSJ0():
 
                 # condition_inputs.append(condition_input)
 
-            batch_inputs = np.array(batch_inputs, dtype='float32')
-            batch_outputs_1 = np.array(batch_outputs_1, dtype='float32')
-            batch_outputs_2 = np.array(batch_outputs_2, dtype='float32')
-            batch_outputs_1 = batch_outputs_1[:, self.model.get_padded_target_field_indices()]
-            batch_outputs_2 = batch_outputs_2[:, self.model.get_padded_target_field_indices()]
-            batch_out = np.array(batch_out, dtype='float32')
-            batch_out = batch_out[:, :, self.model.get_padded_target_field_indices()]
+            batch = np.array(batch, dtype='float32')
+            # batch_out = batch[:, :, self.model.get_padded_target_field_indices()]
             # condition_inputs = self.condition_encode_function(np.array(condition_inputs, dtype='uint8'), 
                                                              # self.model.num_condition_classes)
 
-            # batch = {'data_input': batch_inputs}, {
-                # 'data_output_1': batch_outputs_1, 'data_output_2': batch_outputs_2}
-            batch = {'data_input': batch_inputs}, {'data_output': batch_out}
+            batch = {'data_input': batch}, {'data_output': batch[:, :, self.model.get_padded_target_field_indices()]}
             yield batch
 
     def get_condition_input_encode_func(self, representation):
