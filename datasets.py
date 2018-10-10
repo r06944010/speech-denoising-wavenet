@@ -131,6 +131,7 @@ class WSJ0():
             batch_inputs = []
             batch_outputs_1 = []
             batch_outputs_2 = []
+            batch_out = []
 
             for i, sample_i in enumerate(sample_indices):
                 speech_a = self.retrieve_sequence(set, 'a', sample_i)
@@ -144,6 +145,7 @@ class WSJ0():
                 output_b = speech_b[offset:offset + self.model.input_length]
                 input = mix[offset:offset + self.model.input_length]
 
+
                 # if self.noise_only_percent > 0:
                 #     if np.random.uniform(0, 1) <= self.noise_only_percent:
                 #         input = output_noise #Noise only
@@ -152,7 +154,6 @@ class WSJ0():
                 batch_inputs.append(input)
                 batch_outputs_1.append(output_a)
                 batch_outputs_2.append(output_b)
-
                 # if np.random.uniform(0, 1) <= 1.0 / self.get_num_condition_classes():
                 #     condition_input = 0
                 # else:
@@ -169,9 +170,11 @@ class WSJ0():
             batch_outputs_2 = batch_outputs_2[:, self.model.get_padded_target_field_indices()]
             # condition_inputs = self.condition_encode_function(np.array(condition_inputs, dtype='uint8'), self.model.num_condition_classes)
 
-            batch = {'data_input': batch_inputs}, {
-                'data_output_1': batch_outputs_1, 'data_output_2': batch_outputs_2}
-
+            # batch = {'data_input': batch_inputs}, {
+                # 'data_output_1': batch_outputs_1, 'data_output_2': batch_outputs_2}
+            print(np.concatenate((batch_outputs_1, batch_outputs_2)).shape)
+            exit()
+            batch = {'data_input': batch_inputs}, {'data_output': np.concatenate((batch_outputs_1, batch_outputs_2))}
             yield batch
 
     def get_condition_input_encode_func(self, representation):

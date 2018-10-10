@@ -51,8 +51,8 @@ class DenoisingWavenet():
         self.half_target_field_length = self.target_field_length // 2
         self.half_receptive_field_length = self.receptive_field_length // 2
         self.num_residual_blocks = len(self.dilations) * self.num_stacks
-        # self.activation = keras.layers.Activation('relu')
-        self.activation = keras.layers.PReLU()
+        self.activation = keras.layers.Activation('relu')
+        # self.activation = keras.layers.PReLU()
         self.samples_of_interest_indices = self.get_padded_target_field_indices()
         self.target_sample_indices = self.get_target_field_indices()
 
@@ -200,7 +200,7 @@ class DenoisingWavenet():
                      target_sample_index + self.half_target_field_length + self.target_padding + 1)
 
     def get_target_sample_index(self):
-        return self.input_length // 2.0
+        return self.input_length // 2
 
     def get_metrics(self):
 
@@ -293,15 +293,13 @@ class DenoisingWavenet():
         
         data_out = keras.layers.Conv1D(2, 1)(data_out)
 
-        out_speech_1 = keras.layers.Lambda(lambda x: x[:,:,0],
-                                              output_shape=lambda shape: (shape[0], shape[1]), 
-                                              name='data_output_1')(data_out)
+        out_speech = keras.layers.Lambda(lambda x: x, name='data_output')(data_out)
 
-        out_speech_2 = keras.layers.Lambda(lambda x: x[:,:,1],
-                                              output_shape=lambda shape: (shape[0], shape[1]), 
-                                              name='data_output_2')(data_out)
+        # out_speech_2 = keras.layers.Lambda(lambda x: x[:,:,1],
+                                              # output_shape=lambda shape: (shape[0], shape[1]), 
+                                              # name='data_output_2')(data_out)
 
-        return keras.engine.Model(inputs=[data_input], outputs=[out_speech_1, out_speech_2])
+        return keras.engine.Model(inputs=[data_input], outputs=[out_speech])
 
     def dilated_residual_block(self, data_x, res_block_i, layer_i, dilation, stack_i):
 

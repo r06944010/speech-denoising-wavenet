@@ -13,9 +13,6 @@ import keras.backend as K
 
 def pit_loss(y_true, y_pred, l1_weight, l2_weight):
 
-    print(y_true)
-    print(y_pred)
-    exit()
     loss = 0
     y_true = K.expand_dims(y_true, 1)
     y_pred = K.expand_dims(y_pred, 0)
