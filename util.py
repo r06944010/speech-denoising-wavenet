@@ -9,6 +9,31 @@ import scipy.signal
 import scipy.stats
 import soundfile as sf
 import keras
+import keras.backend as K
+
+def pit_loss(y_true, y_pred, l1_weight, l2_weight):
+
+    print(y_true)
+    print(y_pred)
+    exit()
+    loss = 0
+    y_true = K.expand_dims(y_true, 1)
+    y_pred = K.expand_dims(y_pred, 0)
+
+    y_err = y_true - y_pred
+    y_err_abs = K.abs(y_err)
+
+    if l1_weight != 0:
+        l1_loss = K.sum(y_err_abs, axis=(1,2))
+        l1_loss = K.min(l1_loss)
+        loss += l1_weight * l1_loss
+
+    if l2_weight != 0:
+        l2_loss = K.sum(K.square(y_err_abs), axis=(1,2))
+        l2_loss = K.min(l2_loss)
+        loss += l2_weight * l2_loss
+
+    return loss
 
 def l1_l2_loss(y_true, y_pred, l1_weight, l2_weight):
 

@@ -29,7 +29,8 @@ class DenoisingWavenet():
         # self.condition_input_length = self.get_condition_input_length(self.config['model']['condition_encoding'])
         
         # single target need how many input samples
-        self.receptive_field_length = util.compute_receptive_field_length(config['model']['num_stacks'], self.dilations,
+        self.receptive_field_length = util.compute_receptive_field_length(config['model']['num_stacks'], 
+                                                                          self.dilations,
                                                                           config['model']['filters']['lengths']['res'],
                                                                           1)
 
@@ -48,15 +49,17 @@ class DenoisingWavenet():
         self.target_padding = config['model']['target_padding']
         self.padded_target_field_length = self.target_field_length + 2 * self.target_padding
         self.half_target_field_length = self.target_field_length // 2
-        self.half_receptive_field_length = self.receptive_field_length / 2
+        self.half_receptive_field_length = self.receptive_field_length // 2
         self.num_residual_blocks = len(self.dilations) * self.num_stacks
-        self.activation = keras.layers.Activation('relu')
+        # self.activation = keras.layers.Activation('relu')
+        self.activation = keras.layers.PReLU()
         self.samples_of_interest_indices = self.get_padded_target_field_indices()
         self.target_sample_indices = self.get_target_field_indices()
 
         self.optimizer = self.get_optimizer()
         self.out_1_loss = self.get_out_1_loss()
         self.out_2_loss = self.get_out_2_loss()
+        self.pit_loss = self.get_pit_loss()
         self.metrics = self.get_metrics()
         self.epoch_num = 0
         self.checkpoints_path = ''
@@ -110,8 +113,11 @@ class DenoisingWavenet():
         if print_model_summary:
             model.summary()
 
+        # model.compile(optimizer=self.optimizer,
+                      # loss={'data_output_1': self.out_1_loss, 'data_output_2': self.out_2_loss}, 
+                      # metrics=self.metrics)
         model.compile(optimizer=self.optimizer,
-                      loss={'data_output_1': self.out_1_loss, 'data_output_2': self.out_2_loss}, 
+                      loss={'data_output': self.pit_loss}, 
                       metrics=self.metrics)
         self.config['model']['num_params'] = model.count_params()
 
@@ -143,6 +149,12 @@ class DenoisingWavenet():
             return lambda y_true, y_pred: y_true * 0
 
         return lambda y_true, y_pred: self.config['training']['loss']['out_2']['weight'] * util.l1_l2_loss(
+            y_true, y_pred, self.config['training']['loss']['out_2']['l1'],
+            self.config['training']['loss']['out_2']['l2'])
+
+    def get_pit_loss(self):
+
+        return lambda y_true, y_pred: util.pit_loss(
             y_true, y_pred, self.config['training']['loss']['out_2']['l1'],
             self.config['training']['loss']['out_2']['l2'])
 
@@ -188,7 +200,7 @@ class DenoisingWavenet():
                      target_sample_index + self.half_target_field_length + self.target_padding + 1)
 
     def get_target_sample_index(self):
-        return int(np.floor(self.input_length / 2.0))
+        return self.input_length // 2.0
 
     def get_metrics(self):
 
