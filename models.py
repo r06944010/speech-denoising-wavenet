@@ -172,7 +172,7 @@ class DenoisingWavenet():
 
     def fit_model(self, train_set_generator, num_train_samples, test_set_generator, num_test_samples, num_epochs):
 
-        print('Fitting model with %d training samples and %d test samples...' % (num_train_samples, num_test_samples))
+        print('Fitting model with %d training samples and %d valid samples...' % (num_train_samples, num_test_samples))
 
         self.model.fit_generator(train_set_generator,
                                  num_train_samples,
@@ -293,7 +293,7 @@ class DenoisingWavenet():
         
         data_out = keras.layers.Conv1D(2, 1)(data_out)
 
-        out_speech = keras.layers.Lambda(lambda x: x, name='data_output')(data_out)
+        out_speech = keras.layers.Lambda(lambda x: keras.backend.permute_dimensions(x, (0,2,1)), name='data_output')(data_out)
 
         # out_speech_2 = keras.layers.Lambda(lambda x: x[:,:,1],
                                               # output_shape=lambda shape: (shape[0], shape[1]), 

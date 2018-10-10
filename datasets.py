@@ -152,6 +152,7 @@ class WSJ0():
                 #         output_speech = np.array([0] * self.model.input_length) #Silence
 
                 batch_inputs.append(input)
+                batch_out.append([output_a, output_b])
                 batch_outputs_1.append(output_a)
                 batch_outputs_2.append(output_b)
                 # if np.random.uniform(0, 1) <= 1.0 / self.get_num_condition_classes():
@@ -168,13 +169,14 @@ class WSJ0():
             batch_outputs_2 = np.array(batch_outputs_2, dtype='float32')
             batch_outputs_1 = batch_outputs_1[:, self.model.get_padded_target_field_indices()]
             batch_outputs_2 = batch_outputs_2[:, self.model.get_padded_target_field_indices()]
-            # condition_inputs = self.condition_encode_function(np.array(condition_inputs, dtype='uint8'), self.model.num_condition_classes)
+            batch_out = np.array(batch_out, dtype='float32')
+            batch_out = batch_out[:, :, self.model.get_padded_target_field_indices()]
+            # condition_inputs = self.condition_encode_function(np.array(condition_inputs, dtype='uint8'), 
+                                                             # self.model.num_condition_classes)
 
             # batch = {'data_input': batch_inputs}, {
                 # 'data_output_1': batch_outputs_1, 'data_output_2': batch_outputs_2}
-            print(np.concatenate((batch_outputs_1, batch_outputs_2)).shape)
-            exit()
-            batch = {'data_input': batch_inputs}, {'data_output': np.concatenate((batch_outputs_1, batch_outputs_2))}
+            batch = {'data_input': batch_inputs}, {'data_output': batch_out}
             yield batch
 
     def get_condition_input_encode_func(self, representation):
