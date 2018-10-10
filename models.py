@@ -224,13 +224,11 @@ class DenoisingWavenet():
         data_input = keras.layers.Input(
                 shape=(2, self.input_length,),
                 name='data_input')
-        print(data_input)
-        data_input = keras.backend.sum(data_input, axis=1)
-        print(data_input)
-        exit()
+        
+        data_mix = keras.layers.Lambda(lambda x: keras.backend.sum(x, 1))(data_input)
         # condition_input = keras.engine.Input(shape=(self.condition_input_length,),
                                              # name='condition_input')
-        data_expanded = layers.AddSingletonDepth()(data_input)
+        data_expanded = layers.AddSingletonDepth()(data_mix)
 
         data_input_target_field_length = layers.Slice(
             (slice(self.samples_of_interest_indices[0], self.samples_of_interest_indices[-1] + 1, 1), Ellipsis),
