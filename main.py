@@ -28,6 +28,7 @@ def get_command_line_arguments():
     parser.set_defaults(noisy_input_path=None)
     parser.set_defaults(print_model_summary=False)
     parser.set_defaults(target_field_length=None)
+    parser.set_defaults(use_condition=False)
 
     parser.add_option('--mode', dest='mode')
     parser.add_option('--print_model_summary', dest='print_model_summary')
@@ -39,7 +40,7 @@ def get_command_line_arguments():
     parser.add_option('--noisy_input_path', dest='noisy_input_path')
     parser.add_option('--clean_input_path', dest='clean_input_path')
     parser.add_option('--target_field_length', dest='target_field_length')
-
+    parser.add_option('--use_condition', dest='use_condition')
 
     (options, args) = parser.parse_args()
 
@@ -73,13 +74,12 @@ def training(config, cla):
     model = models.DenoisingWavenet(config, load_checkpoint=cla.load_checkpoint, print_model_summary=cla.print_model_summary)
     dataset = get_dataset(config, model)
 
-    num_train_samples = config['training']['num_train_samples']
-    num_valid_samples = config['training']['num_valid_samples']
+    num_train_samples = config['training']['num_train_samples'] // config['training']['batch_size']
+    num_valid_samples = config['training']['num_valid_samples'] // config['training']['batch_size'] 
     train_set_generator = dataset.get_random_batch_generator('train')
     valid_set_generator = dataset.get_random_batch_generator('valid')
 
-    model.fit_model(train_set_generator, 20000//config['training']['batch_size'], valid_set_generator, 
-                    5000//config['training']['batch_size'], config['training']['num_epochs'])
+    model.fit_model(train_set_generator, num_train_samples, valid_set_generator, num_valid_samples, config['training']['num_epochs'])
 
 
 def get_valid_output_folder_path(outputs_folder_path):
@@ -160,6 +160,7 @@ def main():
     set_system_settings()
     cla = get_command_line_arguments()
     config = load_config(cla.config)
+    config['training']['use_condition'] = cla.use_condition
 
     if cla.mode == 'training':
         training(config, cla)

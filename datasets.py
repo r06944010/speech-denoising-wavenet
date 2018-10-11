@@ -17,7 +17,7 @@ class WSJ0():
         self.sequences  = {'train': {'a': [], 'b': []}, 'valid': {'a': [], 'b': []}, 'test': {'a': [], 'b': []}}
         self.voice_indices  = {'train': [], 'valid': [], 'test': []}
         self.regain_factors = {'train': [], 'valid': [], 'test': []}
-        self.speakers       = {'train': [], 'valid': [], 'test': []}
+        self.speakers   = {'train': {'a': [], 'b': []}, 'valid': {'a': [], 'b': []}, 'test': {'a': [], 'b': []}}
         self.speaker_mapping = {}
         self.batch_size = config['training']['batch_size']
         self.noise_only_percent = config['dataset']['noise_only_percent']
@@ -26,7 +26,7 @@ class WSJ0():
         self.in_memory_percentage = config['dataset']['in_memory_percentage']
         self.num_sequences_in_memory = 0
         self.condition_encode_function = util.get_condition_input_encode_func(config['model']['condition_encoding'])
-
+        self.use_condition = config['training']['use_condition']
     def load_dataset(self):
 
         print('Loading WSJ0-mix dataset...')
@@ -58,7 +58,7 @@ class WSJ0():
             for spk in ['a', 'b']:
                 sequences, speakers, speech_onset_offset_indices, regain_factors = \
                     self.load_directory(self.file_paths[set][spk], spk)
-                # self.speakers[set] = speakers
+                self.speakers[set][spk] = speakers
                 self.sequences[set][spk] = sequences
 
                 # if condition == 'clean':
@@ -77,9 +77,9 @@ class WSJ0():
         sequences = []
         for filename in filenames:
             speaker_name = filename.split('/')[-1].split('_')[0][:3] if spk=='a' else \
-                           filename.split('/')[-1].split('_')[2][:3]
-            if speaker_name not in speakers:
-                speakers.append(speaker_name)
+                filename.split('/')[-1].split('_')[2][:3]
+            speakers.append(speaker_name)
+
             sequence = util.load_wav(filename, self.sample_rate)
             sequences.append(sequence)
             self.num_sequences_in_memory += 1
@@ -96,7 +96,7 @@ class WSJ0():
 
     def get_num_sequences_in_dataset(self):
         return len(self.sequences['train']['a']) + len(self.sequences['train']['b']) + \
-                len(self.sequences['test']['a']) + len(self.sequences['test']['b'])
+            len(self.sequences['test']['a']) + len(self.sequences['test']['b'])
 
     def retrieve_sequence(self, set, condition, sequence_num):
 
@@ -120,15 +120,16 @@ class WSJ0():
 
         indices = np.arange((n_data[set] + self.batch_size - 1) // self.batch_size * self.batch_size)
         indices %= n_data[set]
+        
         if shuffle:
             np.random.shuffle(indices)
 
         beg = 0
-        while True:
+        while beg < len(indices):
             sample_indices = indices[beg:beg+self.batch_size]
             beg += self.batch_size
-            # condition_inputs = []
-            batch = []
+            condition_inputs = []
+            batch_inputs = []
 
             for i, sample_i in enumerate(sample_indices):
                 speech_a = self.retrieve_sequence(set, 'a', sample_i)
@@ -146,24 +147,35 @@ class WSJ0():
                 #         input = output_noise #Noise only
                 #         output_speech = np.array([0] * self.model.input_length) #Silence
 
-                # batch_inputs.append([output_a, output_b])
-                batch.append([output_a, output_b])
-                # if np.random.uniform(0, 1) <= 1.0 / self.get_num_condition_classes():
-                #     condition_input = 0
-                # else:
-                #     condition_input = self.speaker_mapping[self.speakers[set][sample_i]]
-                #     if condition_input > 28: #If speaker is in test set, use wildcard condition class 0
-                #         condition_input = 0
+                batch_inputs.append([output_a, output_b])
 
-                # condition_inputs.append(condition_input)
+                if self.use_condition:
+                    if np.random.uniform(0, 1) <= 0.1:
+                        cond_1 = cond_2 = 0
+                    else:
+                        cond_1 = self.speaker_mapping[self.speakers[set]['a'][sample_i]]
+                        cond_2 = self.speaker_mapping[self.speakers[set]['b'][sample_i]]
 
-            batch = np.array(batch, dtype='float32')
+                    condition_inputs.append([cond_1, cond_2])
+
+            batch_inputs = np.array(batch_inputs, dtype='float32')
             # batch_out = batch[:, :, self.model.get_padded_target_field_indices()]
-            # condition_inputs = self.condition_encode_function(np.array(condition_inputs, dtype='uint8'), 
-                                                             # self.model.num_condition_classes)
-
-            batch = {'data_input': batch}, {'data_output': batch[:, :, self.model.get_padded_target_field_indices()]}
-            yield batch
+            if self.use_condition:
+                condition_inputs = self.condition_encode_function(np.array(condition_inputs, dtype='uint8'), 
+                                                                  self.model.num_condition_classes)
+                batch = {'data_input': batch_inputs, 'condition_input': condition_inputs}, \
+                    {'data_output': batch_inputs[:, :, self.model.get_padded_target_field_indices()]}
+                yield batch
+            else:
+                batch = {'data_input': batch_inputs}, \
+                    {'data_output': batch_inputs[:, :, self.model.get_padded_target_field_indices()]}
+                yield batch
+                # except:
+                    # print('sample_i:', sample_i)
+                    # print('batch ndim:', batch_inputs.ndim)
+                    # print('target range:',self.model.get_padded_target_field_indices())
+                    # print('batch shape:', batch_inputs.shape)
+                    # exit()
 
     def get_condition_input_encode_func(self, representation):
 

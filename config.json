@@ -3,14 +3,14 @@
         "extract_voice": false,
         "in_memory_percentage": 1,
         "noise_only_percent": 0.0,
-        "num_condition_classes": 0,
+        "num_condition_classes": 119,
         "path": "data/NSDTSEA/",
         "regain": 0.06,
         "sample_rate": 8000,
         "type": "wsj0-mix"
     },
     "model": {
-        "condition_encoding": "binary",
+        "condition_encoding": "one-hot",
         "dilations": 9,
         "filters": {
             "lengths": {
@@ -55,6 +55,7 @@
         "num_valid_samples": 5000,
         "num_train_samples": 20000,
         "path": "sessions/002",
-        "verbosity": 1
+        "verbosity": 1,
+        "use_condition": true
     }
 }
