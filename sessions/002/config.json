@@ -3,14 +3,14 @@
         "extract_voice": false,
         "in_memory_percentage": 1,
         "noise_only_percent": 0.0,
-        "num_condition_classes": 0,
+        "num_condition_classes": 119,
         "path": "data/NSDTSEA/",
         "regain": 0.06,
         "sample_rate": 8000,
         "type": "wsj0-mix"
     },
     "model": {
-        "condition_encoding": "binary",
+        "condition_encoding": "one-hot",
         "dilations": 9,
         "filters": {
             "depths": {
@@ -30,12 +30,12 @@
                 "skip": 1
             }
         },
-        "input_length": 7739,
-        "num_params": 6292354,
-        "num_residual_blocks": 30,
-        "num_stacks": 3,
-        "receptive_field_length": 6139.0,
-        "target_field_length": 1601,
+        "input_length": 4893,
+        "num_params": 4981634,
+        "num_residual_blocks": 20,
+        "num_stacks": 2,
+        "receptive_field_length": 4093.0,
+        "target_field_length": 801,
         "target_padding": 1
     },
     "optimizer": {
@@ -46,7 +46,7 @@
         "type": "adam"
     },
     "training": {
-        "batch_size": 32,
+        "batch_size": 10,
         "early_stopping_patience": 16,
         "loss": {
             "out_1": {
@@ -65,6 +65,7 @@
         "num_train_samples": 20000,
         "num_valid_samples": 5000,
         "path": "sessions/002",
+        "use_condition": false,
         "verbosity": 1
     }
 }

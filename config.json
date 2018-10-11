@@ -24,8 +24,8 @@
                 "final": [2048, 256]
             }
         },
-        "num_stacks": 3,
-        "target_field_length": 1601,
+        "num_stacks": 2,
+        "target_field_length": 801,
         "target_padding": 1
     },
     "optimizer": {
