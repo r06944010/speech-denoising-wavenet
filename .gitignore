@@ -2,6 +2,7 @@ wsj0-mix/
 wsj0-mix
 sessions/
 session
+*.wav
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

@@ -10,24 +10,39 @@ import scipy.stats
 import soundfile as sf
 import keras
 import keras.backend as K
+import tensorflow as tf
+import itertools
 
-def pit_loss(y_true, y_pred, l1_weight, l2_weight):
+def pit_loss(y_true, y_pred, l1_weight, l2_weight, pit_axis=1, n_speaker=2):
 
     loss = 0
-    y_true = K.expand_dims(y_true, 1)
-    y_pred = K.expand_dims(y_pred, 0)
+    y_true = K.expand_dims(y_true, pit_axis+1)
+    y_pred = K.expand_dims(y_pred, pit_axis)
+    perms = np.array(list(itertools.permutations(range(n_speaker))))
+    perms_onehot = tf.one_hot(perms, n_speaker)
 
-    y_err = y_true - y_pred
-    y_err_abs = K.abs(y_err)
+    y_cross_loss = y_true - y_pred
 
     if l1_weight != 0:
-        l1_loss = K.sum(y_err_abs, axis=(1,2))
-        l1_loss = K.min(l1_loss)
+        y_cross_loss_abs = K.sum(K.abs(y_cross_loss), axis=3)
+        loss_sets = tf.einsum('bij,pij->bp', y_cross_loss_abs, perms_onehot)
+        l1_loss = tf.reduce_min(loss_sets, axis=1)
+
+        # loss_sets_idx = tf.argmin(loss_sets, axis=1)
+        # s_loss = tf.gather_nd(
+        #     loss_sets,
+        #     tf.stack([
+        #         tf.range(10, dtype=tf.int64),
+        #         loss_sets_idx], axis=1))
+
+        l1_loss = tf.reduce_sum(l1_loss)
         loss += l1_weight * l1_loss
 
     if l2_weight != 0:
-        l2_loss = K.sum(K.square(y_err_abs), axis=(1,2))
-        l2_loss = K.min(l2_loss)
+        y_cross_loss_abs = K.sum(K.square(y_cross_loss), axis=3)
+        loss_sets = tf.einsum('bij,pij->bp', y_cross_loss_abs, perms_onehot)
+        l2_loss = tf.reduce_min(loss_sets, axis=1)
+        l2_loss = tf.reduce_sum(l2_loss)
         loss += l2_weight * l2_loss
 
     return loss
@@ -37,7 +52,7 @@ def l1_l2_loss(y_true, y_pred, l1_weight, l2_weight):
     loss = 0
 
     if l1_weight != 0:
-        loss += l1_weight*keras.losses.mean_absolute_error(y_true, y_pred)
+        loss += l1_weight * keras.losses.mean_absolute_error(y_true, y_pred)
 
     if l2_weight != 0:
         loss += l2_weight * keras.losses.mean_squared_error(y_true, y_pred)

@@ -49,7 +49,7 @@ class DenoisingWavenet():
         self.target_padding = config['model']['target_padding']
         self.padded_target_field_length = self.target_field_length + 2 * self.target_padding
         self.half_target_field_length = self.target_field_length // 2
-        self.half_receptive_field_length = self.receptive_field_length // 2
+        self.half_receptive_field_length = int(self.receptive_field_length) // 2
         self.num_residual_blocks = len(self.dilations) * self.num_stacks
         self.activation = keras.layers.Activation('relu')
         # self.activation = keras.layers.PReLU()

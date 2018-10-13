@@ -43,11 +43,14 @@ def denoise_sample(model, input, condition_input, batch_size, output_filename_pr
             input_batch[batch_fragment_i, :] = current_fragment
             fragment_i += model.target_field_length
 
-        denoised_output_fragments = model.denoise_batch({'data_input': input_batch, 'condition_input': condition_batch})
-
-        if type(denoised_output_fragments) is list:
-            noise_output_fragment = denoised_output_fragments[1]
-            denoised_output_fragment = denoised_output_fragments[0]
+        # denoised_output_fragments = model.denoise_batch({'data_input': input_batch, 'condition_input': condition_batch})
+        input_batch = np.concatenate([np.expand_dims(input_batch, 0), np.zeros_like(np.expand_dims(input_batch, 0))])
+        input_batch = np.transpose(input_batch, (1,0,2))
+        denoised_output_fragments = model.denoise_batch({'data_input': input_batch})
+ 
+        # if type(denoised_output_fragments) is list:
+        noise_output_fragment = denoised_output_fragments[:, 1]
+        denoised_output_fragment = denoised_output_fragments[:, 0]
 
         denoised_output_fragment = denoised_output_fragment[:, model.target_padding: model.target_padding + model.target_field_length]
         denoised_output_fragment = denoised_output_fragment.flatten().tolist()
@@ -70,7 +73,6 @@ def denoise_sample(model, input, condition_input, batch_size, output_filename_pr
     if num_pad_values != 0:
         denoised_output = denoised_output[:-num_pad_values]
         noise_output = noise_output[:-num_pad_values]
-
     valid_noisy_signal = input['noisy'][
                          model.half_receptive_field_length:model.half_receptive_field_length + len(denoised_output)]
 
@@ -104,7 +106,7 @@ def denoise_sample(model, input, condition_input, batch_size, output_filename_pr
     output_denoised_filepath = os.path.join(output_path, output_denoised_filename)
     output_noisy_filepath = os.path.join(output_path, output_noisy_filename)
     output_noise_filepath = os.path.join(output_path, output_noise_filename)
-
+    print(output_denoised_filepath)
     util.write_wav(denoised_output, output_denoised_filepath, sample_rate)
     util.write_wav(valid_noisy_signal, output_noisy_filepath, sample_rate)
     util.write_wav(noise_output, output_noise_filepath, sample_rate)
