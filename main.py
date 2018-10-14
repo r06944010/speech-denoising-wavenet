@@ -74,10 +74,13 @@ def training(config, cla):
     model = models.DenoisingWavenet(config, load_checkpoint=cla.load_checkpoint, print_model_summary=cla.print_model_summary)
     dataset = get_dataset(config, model)
 
-    num_train_samples = config['training']['num_train_samples'] // config['training']['batch_size']
-    num_valid_samples = config['training']['num_valid_samples'] // config['training']['batch_size'] 
+    # num_train_samples = config['training']['num_train_samples'] // config['training']['batch_size']
+    # num_valid_samples = config['training']['num_valid_samples'] // config['training']['batch_size'] 
     train_set_generator = dataset.get_random_batch_generator('train')
     valid_set_generator = dataset.get_random_batch_generator('valid')
+
+    num_train_samples = dataset.get_num_batch_in_dataset('train')
+    num_valid_samples = dataset.get_num_batch_in_dataset('valid')
 
     model.fit_model(train_set_generator, num_train_samples, valid_set_generator, num_valid_samples, config['training']['num_epochs'])
     # model.fit_model(train_set_generator, 10, valid_set_generator, 2, config['training']['num_epochs'])

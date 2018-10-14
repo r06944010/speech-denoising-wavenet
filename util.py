@@ -13,15 +13,13 @@ import keras.backend as K
 import tensorflow as tf
 import itertools
 
-def pit_loss(y_true, y_pred, l1_weight, l2_weight, pit_axis=1, n_speaker=2):
+def pit_loss(y_true, y_pred, l1_weight, l2_weight, pit_axis=1, n_speaker=2, use_energy_conserve=True):
 
     loss = 0
-    y_true = K.expand_dims(y_true, pit_axis+1)
-    y_pred = K.expand_dims(y_pred, pit_axis)
     perms = np.array(list(itertools.permutations(range(n_speaker))))
     perms_onehot = tf.one_hot(perms, n_speaker)
 
-    y_cross_loss = y_true - y_pred
+    y_cross_loss = K.expand_dims(y_true, pit_axis+1) - K.expand_dims(y_pred, pit_axis)
 
     if l1_weight != 0:
         y_cross_loss_abs = K.sum(K.abs(y_cross_loss), axis=3)
@@ -36,6 +34,12 @@ def pit_loss(y_true, y_pred, l1_weight, l2_weight, pit_axis=1, n_speaker=2):
         l2_loss = tf.reduce_min(loss_sets, axis=1)
         l2_loss = tf.reduce_mean(l2_loss)
         loss += l2_weight * l2_loss
+
+    if use_energy_conserve:
+        true_mix = tf.reduce_mean(y_true, 1)
+        pred_mix = tf.reduce_mean(y_pred, 1)
+        e_loss = tf.reduce_mean(tf.square(true_mix-pred_mix))
+        loss += e_loss
 
     return loss
 

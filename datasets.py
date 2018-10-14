@@ -95,6 +95,16 @@ class WSJ0():
 
         return sequences, speakers, speech_onset_offset_indices, regain_factors
 
+    def get_num_batch_in_dataset(self, set):
+        n_data = {'train':20000,'valid':5000,'test':3000}
+        indices = np.arange((n_data[set] + self.batch_size - 1) // self.batch_size * self.batch_size)
+        num_sample = 0
+        for _idx in range(len(indices)):
+            sample_i = indices[_idx]
+            speech_a = self.retrieve_sequence(set, 'a', sample_i)
+            num_sample += len(speech_a) // self.model.input_length
+        return num_sample // self.batch_size
+
     def get_num_sequences_in_dataset(self):
         return len(self.sequences['train']['a']) + len(self.sequences['train']['b']) + \
             len(self.sequences['test']['a']) + len(self.sequences['test']['b'])
@@ -122,11 +132,33 @@ class WSJ0():
         while True:
             indices = np.arange((n_data[set] + self.batch_size - 1) // self.batch_size * self.batch_size)
             indices %= n_data[set]
-            
+
             if shuffle:
                 np.random.shuffle(indices)
-
             beg = 0
+            sample_count = 0
+            batch_inputs = []
+
+            for _idx in range(len(indices)):
+                sample_i = indices[_idx]
+                speech_a = self.retrieve_sequence(set, 'a', sample_i)
+                speech_b = self.retrieve_sequence(set, 'b', sample_i)
+                i = 0
+                while i + self.model.input_length <= len(speech_a):
+                    output_a = speech_a[i:i+self.model.input_length]
+                    output_b = speech_b[i:i+self.model.input_length]
+                    batch_inputs.append([output_a, output_b])
+                    i += self.model.input_length
+                    sample_count += 1
+                    if sample_count == self.batch_size:
+                        batch_inputs = np.array(batch_inputs, dtype='float32')
+                        batch = {'data_input': batch_inputs}, \
+                            {'data_output': batch_inputs[:, :, self.model.get_padded_target_field_indices()]}
+                        yield batch
+                        sample_count = 0
+                        batch_inputs = []
+
+            '''
             while beg < len(indices):
                 sample_indices = indices[beg:beg+self.batch_size]
                 beg += self.batch_size
@@ -170,6 +202,7 @@ class WSJ0():
                     batch = {'data_input': batch_inputs}, \
                         {'data_output': batch_inputs[:, :, self.model.get_padded_target_field_indices()]}
                     yield batch
+            '''
 
     def get_condition_input_encode_func(self, representation):
 
