@@ -36,7 +36,7 @@
         "type": "adam"
     },
     "training": {
-        "batch_size": 10,
+        "batch_size": 32,
         "early_stopping_patience": 30,
         "loss": {
             "out_1": {
@@ -46,7 +46,7 @@
             },
             "out_2": {
                 "l1": 1,
-                "l2": 1,
+                "l2": 0,
                 "weight": 1
             }
         },
@@ -54,7 +54,7 @@
         "num_test_samples" : 3000,
         "num_valid_samples": 5000,
         "num_train_samples": 20000,
-        "path": "sessions/test",
+        "path": "sessions/1014-4",
         "verbosity": 1,
         "use_condition": true
     }

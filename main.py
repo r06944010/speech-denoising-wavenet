@@ -129,22 +129,18 @@ def test(config, cla):
             cla.noisy_input_path += '/'
         filenames = [filename for filename in os.listdir(cla.noisy_input_path) if filename.endswith('.wav')]
 
-    clean_input = None
+    clean_input_1 = clean_input_2 = None
+    snr = []
     for filename in filenames:
         noisy_input = util.load_wav(cla.noisy_input_path + filename, config['dataset']['sample_rate'])
         if cla.clean_input_path is not None:
             if not cla.clean_input_path.endswith('/'):
                 cla.clean_input_path += '/'
-            clean_input = util.load_wav(cla.clean_input_path + filename, config['dataset']['sample_rate'])
-
-        input = {'noisy': noisy_input, 'clean': clean_input}
+            clean_input_1 = util.load_wav(cla.clean_input_path + 's1/' + filename, config['dataset']['sample_rate'])
+            clean_input_2 = util.load_wav(cla.clean_input_path + 's2/' + filename, config['dataset']['sample_rate'])
+        input = {'noisy': noisy_input, 'clean_1': clean_input_1, 'clean_2':clean_input_2}
 
         output_filename_prefix = filename[0:-4] + '_'
-
-        if config['model']['condition_encoding'] == 'one_hot':
-            condition_input = util.one_hot_encode(int(cla.condition_value), 29)[0]
-        else:
-            condition_input = util.binary_encode(int(cla.condition_value), 29)[0]
 
         if bool(cla.one_shot):
             if len(input['noisy']) % 2 == 0:  # If input length is even, remove one sample
@@ -154,9 +150,12 @@ def test(config, cla):
             model = models.DenoisingWavenet(config, load_checkpoint=cla.load_checkpoint, input_length=len(input['noisy']), \
                                             print_model_summary=cla.print_model_summary)
 
-        print("Denoising: " + filename)
-        denoise.denoise_sample(model, input, condition_input, batch_size, output_filename_prefix,
-                                            config['dataset']['sample_rate'], output_folder_path)
+        # print("Denoising: " + filename).
+        condition_input = None
+        _snr = denoise.denoise_sample(model, input, condition_input, batch_size, output_filename_prefix,
+                                      config['dataset']['sample_rate'], output_folder_path)
+        snr.append(_snr)
+    print('Testing SDR:', np.mean(snr))
 def inference(config, cla):
 
     if cla.batch_size is not None:

@@ -98,6 +98,7 @@ class WSJ0():
     def get_num_batch_in_dataset(self, set):
         n_data = {'train':20000,'valid':5000,'test':3000}
         indices = np.arange((n_data[set] + self.batch_size - 1) // self.batch_size * self.batch_size)
+        indices %= n_data[set]
         num_sample = 0
         for _idx in range(len(indices)):
             sample_i = indices[_idx]

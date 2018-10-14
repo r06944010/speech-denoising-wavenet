@@ -6,7 +6,7 @@ import os
 import util
 import tqdm
 import numpy as np
-
+import mir_eval
 
 def denoise_sample(model, input, condition_input, batch_size, output_filename_prefix, sample_rate, output_path):
 
@@ -56,9 +56,8 @@ def denoise_sample(model, input, condition_input, batch_size, output_filename_pr
         denoised_output_fragment = denoised_output_fragment[:, model.target_padding: model.target_padding + model.target_field_length]
         denoised_output_fragment = denoised_output_fragment.flatten().tolist()
 
-        if noise_output_fragment is not None:
-            noise_output_fragment = noise_output_fragment[:, model.target_padding: model.target_padding + model.target_field_length]
-            noise_output_fragment = noise_output_fragment.flatten().tolist()
+        noise_output_fragment = noise_output_fragment[:, model.target_padding: model.target_padding + model.target_field_length]
+        noise_output_fragment = noise_output_fragment.flatten().tolist()
 
         if type(denoised_output_fragments) is float:
             denoised_output_fragment = [denoised_output_fragment]
@@ -77,37 +76,43 @@ def denoise_sample(model, input, condition_input, batch_size, output_filename_pr
     valid_noisy_signal = input['noisy'][
                          model.half_receptive_field_length:model.half_receptive_field_length + len(denoised_output)]
 
-    if input['clean'] is not None:
-        input['noise'] = input['noisy'] - input['clean']
+    valid_clean_signal_1 = input['clean_1'][
+                     model.half_receptive_field_length:model.half_receptive_field_length + len(denoised_output)]
+    valid_clean_signal_2 = input['clean_2'][
+                     model.half_receptive_field_length:model.half_receptive_field_length + len(denoised_output)]
 
-        valid_clean_signal = input['clean'][
-                         model.half_receptive_field_length:model.half_receptive_field_length + len(denoised_output)]
+    clean_wav = np.array([valid_clean_signal_1, valid_clean_signal_2])
+    noisy_wav = np.array([denoised_output, noise_output])
 
-        noise_in_denoised_output = denoised_output - valid_clean_signal
+    _sdr, _sir, _sar, _popt = mir_eval.separation.bss_eval_sources(np.array(clean_wav), np.array(noisy_wav))
+    print(_sdr)
+    return(_sdr)
 
-        rms_clean = util.rms(valid_clean_signal)
-        rms_noise_out = util.rms(noise_in_denoised_output)
-        rms_noise_in = util.rms(input['noise'])
+    #     noise_in_denoised_output = denoised_output - valid_clean_signal
 
-        new_snr_db = int(np.round(util.snr_db(rms_clean, rms_noise_out)))
-        initial_snr_db = int(np.round(util.snr_db(rms_clean, rms_noise_in)))
+    #     rms_clean = util.rms(valid_clean_signal)
+    #     rms_noise_out = util.rms(noise_in_denoised_output)
+    #     rms_noise_in = util.rms(input['noise'])
 
-        output_clean_filename = output_filename_prefix + 'clean.wav'
-        output_clean_filepath = os.path.join(output_path, output_clean_filename)
-        util.write_wav(valid_clean_signal, output_clean_filepath, sample_rate)
+    #     new_snr_db = int(np.round(util.snr_db(rms_clean, rms_noise_out)))
+    #     initial_snr_db = int(np.round(util.snr_db(rms_clean, rms_noise_in)))
 
-        output_denoised_filename = output_filename_prefix + 'denoised_%ddB.wav' % new_snr_db
-        output_noisy_filename = output_filename_prefix + 'noisy_%ddB.wav' % initial_snr_db
-    else:
-        output_denoised_filename = output_filename_prefix + 'denoised.wav'
-        output_noisy_filename = output_filename_prefix + 'noisy.wav'
+    #     output_clean_filename = output_filename_prefix + 'clean.wav'
+    #     output_clean_filepath = os.path.join(output_path, output_clean_filename)
+    #     util.write_wav(valid_clean_signal, output_clean_filepath, sample_rate)
 
-    output_noise_filename = output_filename_prefix + 'noise.wav'
+    #     output_denoised_filename = output_filename_prefix + 'denoised_%ddB.wav' % new_snr_db
+    #     output_noisy_filename = output_filename_prefix + 'noisy_%ddB.wav' % initial_snr_db
+    # else:
+    #     output_denoised_filename = output_filename_prefix + 'denoised.wav'
+    #     output_noisy_filename = output_filename_prefix + 'noisy.wav'
 
-    output_denoised_filepath = os.path.join(output_path, output_denoised_filename)
-    output_noisy_filepath = os.path.join(output_path, output_noisy_filename)
-    output_noise_filepath = os.path.join(output_path, output_noise_filename)
-    print(output_denoised_filepath)
-    util.write_wav(denoised_output, output_denoised_filepath, sample_rate)
-    util.write_wav(valid_noisy_signal, output_noisy_filepath, sample_rate)
-    util.write_wav(noise_output, output_noise_filepath, sample_rate)
+    # output_noise_filename = output_filename_prefix + 'noise.wav'
+
+    # output_denoised_filepath = os.path.join(output_path, output_denoised_filename)
+    # output_noisy_filepath = os.path.join(output_path, output_noisy_filename)
+    # output_noise_filepath = os.path.join(output_path, output_noise_filename)
+    # print(output_denoised_filepath)
+    # util.write_wav(denoised_output, output_denoised_filepath, sample_rate)
+    # util.write_wav(valid_noisy_signal, output_noisy_filepath, sample_rate)
+    # util.write_wav(noise_output, output_noise_filepath, sample_rate)
