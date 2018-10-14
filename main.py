@@ -80,6 +80,7 @@ def training(config, cla):
     valid_set_generator = dataset.get_random_batch_generator('valid')
 
     model.fit_model(train_set_generator, num_train_samples, valid_set_generator, num_valid_samples, config['training']['num_epochs'])
+    # model.fit_model(train_set_generator, 10, valid_set_generator, 2, config['training']['num_epochs'])
 
 
 def get_valid_output_folder_path(outputs_folder_path):

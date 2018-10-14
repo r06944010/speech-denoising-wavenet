@@ -7,6 +7,9 @@ import os
 import numpy as np
 import layers
 import logging
+import mir_eval
+import tensorflow as tf
+import itertools
 
 #Speech Denoising Wavenet Model
 
@@ -17,6 +20,9 @@ class DenoisingWavenet():
 
         self.config = config
         self.verbosity = config['training']['verbosity']
+
+        self.batch_size = config['training']['batch_size']
+        self.n_speaker = 2
 
         self.num_stacks = self.config['model']['num_stacks']
         if type(self.config['model']['dilations']) is int:
@@ -211,15 +217,40 @@ class DenoisingWavenet():
         return self.input_length // 2
 
     def get_metrics(self):
-
-        return [
-            keras.metrics.mean_absolute_error,
-            self.valid_mean_absolute_error
-        ]
+        return [self.batch_snr]
 
     def valid_mean_absolute_error(self, y_true, y_pred):
         return keras.backend.mean(
             keras.backend.abs(y_true[:, 1:-2] - y_pred[:, 1:-2]))
+    
+    def batch_snr(self, y_true, y_pred):
+        pit_axis = 1
+
+        v_perms = tf.constant(list(itertools.permutations(range(self.n_speaker))))
+        v_perms_onehot = tf.one_hot(v_perms, self.n_speaker)
+
+        diff = tf.expand_dims(y_true, pit_axis+1) - tf.expand_dims(y_pred, pit_axis)
+
+        cross_loss = tf.reduce_mean(tf.square(diff), 3)
+        loss_sets = tf.einsum('bij,pij->bp', cross_loss, v_perms_onehot)
+        s_perm_sets = tf.argmin(loss_sets, 1)
+
+        s_perm_idxs = tf.stack([
+            tf.tile(
+                tf.expand_dims(tf.range(self.batch_size), 1),
+                [1, self.n_speaker]),
+            tf.gather(v_perms, s_perm_sets)], axis=2)
+
+        s_perm_idxs = tf.reshape(s_perm_idxs, [self.batch_size*self.n_speaker, 2])
+        y_pred = tf.gather_nd(y_pred, s_perm_idxs)
+        y_pred = tf.reshape(y_pred, [self.batch_size, self.n_speaker, -1])
+
+        noise = y_true - y_pred
+        signal_pwr = tf.reduce_mean(tf.square(y_true), (1,2))
+        noise_pwr = tf.reduce_mean(tf.square(noise), (1,2))
+
+        coeff = 4.342944819
+        return tf.reduce_mean(coeff * (tf.log(signal_pwr + 1e-7) - tf.log(noise_pwr + 1e-7)))
 
     def get_condition_input_length(self, representation):
 

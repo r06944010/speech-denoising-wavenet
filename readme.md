@@ -1,3 +1,5 @@
+python main.py --mode test --config sessions/001/config.json --noisy_input_path ./mix_1.wav
+
 A Wavenet For Speech Denoising
 ====
 

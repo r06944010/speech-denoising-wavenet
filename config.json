@@ -54,7 +54,7 @@
         "num_test_samples" : 3000,
         "num_valid_samples": 5000,
         "num_train_samples": 20000,
-        "path": "sessions/002",
+        "path": "sessions/test",
         "verbosity": 1,
         "use_condition": true
     }

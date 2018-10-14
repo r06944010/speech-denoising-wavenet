@@ -27,22 +27,14 @@ def pit_loss(y_true, y_pred, l1_weight, l2_weight, pit_axis=1, n_speaker=2):
         y_cross_loss_abs = K.sum(K.abs(y_cross_loss), axis=3)
         loss_sets = tf.einsum('bij,pij->bp', y_cross_loss_abs, perms_onehot)
         l1_loss = tf.reduce_min(loss_sets, axis=1)
-
-        # loss_sets_idx = tf.argmin(loss_sets, axis=1)
-        # s_loss = tf.gather_nd(
-        #     loss_sets,
-        #     tf.stack([
-        #         tf.range(10, dtype=tf.int64),
-        #         loss_sets_idx], axis=1))
-
-        l1_loss = tf.reduce_sum(l1_loss)
+        l1_loss = tf.reduce_mean(l1_loss)
         loss += l1_weight * l1_loss
 
     if l2_weight != 0:
         y_cross_loss_abs = K.sum(K.square(y_cross_loss), axis=3)
         loss_sets = tf.einsum('bij,pij->bp', y_cross_loss_abs, perms_onehot)
         l2_loss = tf.reduce_min(loss_sets, axis=1)
-        l2_loss = tf.reduce_sum(l2_loss)
+        l2_loss = tf.reduce_mean(l2_loss)
         loss += l2_weight * l2_loss
 
     return loss

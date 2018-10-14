@@ -26,7 +26,7 @@ def denoise_sample(model, input, condition_input, batch_size, output_filename_pr
         if batch_i == num_batches-1: #If its the last batch'
             batch_size = num_fragments - batch_i*batch_size
 
-        condition_batch = np.array([condition_input, ] * batch_size, dtype='uint8')
+        # condition_batch = np.array([condition_input, ] * batch_size, dtype='uint8')
         input_batch = np.zeros((batch_size, model.input_length))
 
         #Assemble batch
@@ -46,11 +46,12 @@ def denoise_sample(model, input, condition_input, batch_size, output_filename_pr
         # denoised_output_fragments = model.denoise_batch({'data_input': input_batch, 'condition_input': condition_batch})
         input_batch = np.concatenate([np.expand_dims(input_batch, 0), np.zeros_like(np.expand_dims(input_batch, 0))])
         input_batch = np.transpose(input_batch, (1,0,2))
+
         denoised_output_fragments = model.denoise_batch({'data_input': input_batch})
  
         # if type(denoised_output_fragments) is list:
-        noise_output_fragment = denoised_output_fragments[:, 1]
-        denoised_output_fragment = denoised_output_fragments[:, 0]
+        noise_output_fragment = denoised_output_fragments[:, 0]
+        denoised_output_fragment = denoised_output_fragments[:, 1]
 
         denoised_output_fragment = denoised_output_fragment[:, model.target_padding: model.target_padding + model.target_field_length]
         denoised_output_fragment = denoised_output_fragment.flatten().tolist()

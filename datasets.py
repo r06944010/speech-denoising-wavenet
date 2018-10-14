@@ -137,9 +137,7 @@ class WSJ0():
                     speech_a = self.retrieve_sequence(set, 'a', sample_i)
                     speech_b = self.retrieve_sequence(set, 'b', sample_i)
 
-                    mix = speech_a + speech_b
-
-                    offset = np.squeeze(np.random.randint(0, len(mix) - self.model.input_length, 1))
+                    offset = np.squeeze(np.random.randint(0, len(speech_a) - self.model.input_length, 1))
 
                     output_a = speech_a[offset:offset + self.model.input_length]
                     output_b = speech_b[offset:offset + self.model.input_length]
