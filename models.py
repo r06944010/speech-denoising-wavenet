@@ -136,9 +136,10 @@ class DenoisingWavenet():
         return model
 
     def get_optimizer(self):
-
+        # Add gradient clipping
         return keras.optimizers.Adam(lr=self.config['optimizer']['lr'], decay=self.config['optimizer']['decay'],
-                                     epsilon=self.config['optimizer']['epsilon'])
+                                     epsilon=self.config['optimizer']['epsilon'],
+                                     clipnorm=1.)
 
     def get_out_1_loss(self):
 

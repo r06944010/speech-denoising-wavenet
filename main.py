@@ -82,7 +82,7 @@ def training(config, cla):
     num_train_samples = dataset.get_num_batch_in_dataset('train')
     num_valid_samples = dataset.get_num_batch_in_dataset('valid')
 
-    model.fit_model(train_set_generator, num_train_samples, valid_set_generator, num_valid_samples, config['training']['num_epochs'])
+    model.fit_model(train_set_generator, num_train_samples, valid_set_generator, 320, config['training']['num_epochs'])
     # model.fit_model(train_set_generator, 10, valid_set_generator, 2, config['training']['num_epochs'])
 
 
