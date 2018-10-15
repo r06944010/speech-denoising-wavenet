@@ -39,12 +39,12 @@
         "batch_size": 10,
         "early_stopping_patience": 30,
         "loss": {
-            "out_1": {
+            "out": {
                 "l1": 1,
                 "l2": 1,
                 "weight": 1
             },
-            "out_2": {
+            "mix": {
                 "l1": 1,
                 "l2": 1,
                 "weight": 1

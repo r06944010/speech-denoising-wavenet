@@ -10,6 +10,7 @@ import models
 import datasets
 import util
 import denoise
+import numpy as np
 
 def set_system_settings():
     sys.setrecursionlimit(50000)
@@ -82,7 +83,8 @@ def training(config, cla):
     num_train_samples = dataset.get_num_batch_in_dataset('train')
     num_valid_samples = dataset.get_num_batch_in_dataset('valid')
 
-    model.fit_model(train_set_generator, num_train_samples, valid_set_generator, 320, config['training']['num_epochs'])
+    model.fit_model(train_set_generator, num_train_samples, valid_set_generator, num_valid_samples, \
+                    config['training']['num_epochs'])
     # model.fit_model(train_set_generator, 10, valid_set_generator, 2, config['training']['num_epochs'])
 
 
@@ -155,7 +157,9 @@ def test(config, cla):
         _snr = denoise.denoise_sample(model, input, condition_input, batch_size, output_filename_prefix,
                                       config['dataset']['sample_rate'], output_folder_path)
         snr.append(_snr)
+    snr = np.array(snr)
     print('Testing SDR:', np.mean(snr))
+
 def inference(config, cla):
 
     if cla.batch_size is not None:

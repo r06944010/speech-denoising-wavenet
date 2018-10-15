@@ -63,8 +63,6 @@ class DenoisingWavenet():
         self.target_sample_indices = self.get_target_field_indices()
 
         self.optimizer = self.get_optimizer()
-        self.out_1_loss = self.get_out_1_loss()
-        self.out_2_loss = self.get_out_2_loss()
         self.pit_loss = self.get_pit_loss()
         self.metrics = self.get_metrics()
         self.epoch_num = 0
@@ -141,29 +139,13 @@ class DenoisingWavenet():
                                      epsilon=self.config['optimizer']['epsilon'],
                                      clipnorm=1.)
 
-    def get_out_1_loss(self):
-
-        if self.config['training']['loss']['out_1']['weight'] == 0:
-            return lambda y_true, y_pred: y_true * 0
-
-        return lambda y_true, y_pred: self.config['training']['loss']['out_1']['weight'] * util.l1_l2_loss(
-            y_true, y_pred, self.config['training']['loss']['out_1']['l1'],
-            self.config['training']['loss']['out_1']['l2'])
-
-    def get_out_2_loss(self):
-
-        if self.config['training']['loss']['out_2']['weight'] == 0:
-            return lambda y_true, y_pred: y_true * 0
-
-        return lambda y_true, y_pred: self.config['training']['loss']['out_2']['weight'] * util.l1_l2_loss(
-            y_true, y_pred, self.config['training']['loss']['out_2']['l1'],
-            self.config['training']['loss']['out_2']['l2'])
-
     def get_pit_loss(self):
 
         return lambda y_true, y_pred: util.pit_loss(
-            y_true, y_pred, self.config['training']['loss']['out_2']['l1'],
-            self.config['training']['loss']['out_2']['l2'])
+            y_true, y_pred, self.config['training']['loss']['out']['l1'],
+            self.config['training']['loss']['out']['l2'],
+            self.config['training']['loss']['mix']['l1'],
+            self.config['training']['loss']['mix']['l2'])
 
     def get_callbacks(self):
 
