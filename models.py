@@ -136,8 +136,7 @@ class DenoisingWavenet():
     def get_optimizer(self):
         # Add gradient clipping
         return keras.optimizers.Adam(lr=self.config['optimizer']['lr'], decay=self.config['optimizer']['decay'],
-                                     epsilon=self.config['optimizer']['epsilon'],
-                                     clipnorm=1.)
+                                     epsilon=self.config['optimizer']['epsilon'])
 
     def get_pit_loss(self):
 
@@ -151,8 +150,8 @@ class DenoisingWavenet():
 
         return [
             keras.callbacks.ReduceLROnPlateau(patience=self.config['training']['early_stopping_patience'] / 2,
-                                              cooldown=self.config['training']['early_stopping_patience'] / 4,
-                                              verbose=1),
+                                              # cooldown=self.config['training']['early_stopping_patience'] / 4,
+                                              factor=0.5, monitor='loss', verbose=1),
             keras.callbacks.EarlyStopping(patience=self.config['training']['early_stopping_patience'], verbose=1,
                                           monitor='loss'),
             keras.callbacks.ModelCheckpoint(os.path.join(self.checkpoints_path, 'checkpoint.{epoch:05d}-{val_loss:.3f}.hdf5')),

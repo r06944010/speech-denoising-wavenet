@@ -24,8 +24,8 @@
                 "final": [2048, 256]
             }
         },
-        "num_stacks": 3,
-        "target_field_length": 801,
+        "num_stacks": 2,
+        "target_field_length": 3201,
         "target_padding": 1
     },
     "optimizer": {
@@ -36,17 +36,17 @@
         "type": "adam"
     },
     "training": {
-        "batch_size": 10,
-        "early_stopping_patience": 30,
+        "batch_size": 16,
+        "early_stopping_patience": 20,
         "loss": {
             "out": {
                 "l1": 1,
-                "l2": 1,
+                "l2": 0,
                 "weight": 1
             },
             "mix": {
-                "l1": 1,
-                "l2": 1,
+                "l1": 0,
+                "l2": 0,
                 "weight": 1
             }
         },
@@ -54,7 +54,7 @@
         "num_test_samples" : 3000,
         "num_valid_samples": 5000,
         "num_train_samples": 20000,
-        "path": "sessions/1014-5",
+        "path": "sessions/5",
         "verbosity": 1,
         "use_condition": true
     }
