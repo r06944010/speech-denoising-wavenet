@@ -154,6 +154,7 @@ def test(config, cla):
 
         # print("Denoising: " + filename).
         condition_input = None
+        print(filename)
         _snr = denoise.denoise_sample(model, input, condition_input, batch_size, output_filename_prefix,
                                       config['dataset']['sample_rate'], output_folder_path)
         snr.append(_snr)
@@ -228,6 +229,12 @@ def main():
     config = load_config(cla.config)
     config['training']['use_condition'] = cla.use_condition
 
+    if cla.batch_size != None:
+        config['training']['batch_size'] = int(cla.batch_size)
+    if cla.target_field_length != None:
+        config['model']['target_field_length'] = int(cla.target_field_length)
+    print('Using Batch Size:', config['training']['batch_size'])
+    print('Target Field Length:', config['model']['target_field_length'])
     if cla.mode == 'training':
         training(config, cla)
     elif cla.mode == 'inference':

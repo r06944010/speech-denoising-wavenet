@@ -50,7 +50,7 @@ class DenoisingWavenet():
             self.target_field_length = config['model']['target_field_length']
             self.input_length = self.receptive_field_length + (self.target_field_length - 1)
         
-        self.input_length = int(self.input_length) 
+        self.input_length = int(self.input_length)
         
         self.target_padding = config['model']['target_padding']
         self.padded_target_field_length = self.target_field_length + 2 * self.target_padding
@@ -58,10 +58,12 @@ class DenoisingWavenet():
         self.half_receptive_field_length = int(self.receptive_field_length) // 2
         self.num_residual_blocks = len(self.dilations) * self.num_stacks
         self.activation = keras.layers.Activation('relu')
+        # self.activation = keras.layers.Activation('selu')
         # self.activation = keras.layers.PReLU()
         self.samples_of_interest_indices = self.get_padded_target_field_indices()
         self.target_sample_indices = self.get_target_field_indices()
 
+        self.ozer_type = self.config['optimizer']['type']
         self.optimizer = self.get_optimizer()
         self.pit_loss = self.get_pit_loss()
         self.metrics = self.get_metrics()
@@ -90,7 +92,8 @@ class DenoisingWavenet():
 
             if load_checkpoint is not None:
                 last_checkpoint_path = load_checkpoint
-                self.epoch_num = 0
+                last_checkpoint = load_checkpoint.split('/')[-1]
+                self.epoch_num = int(last_checkpoint[11:16])
             else:
                 checkpoints = os.listdir(self.checkpoints_path)
                 checkpoints.sort(key=lambda x: os.stat(os.path.join(self.checkpoints_path, x)).st_mtime)
@@ -135,8 +138,12 @@ class DenoisingWavenet():
 
     def get_optimizer(self):
         # Add gradient clipping
-        return keras.optimizers.Adam(lr=self.config['optimizer']['lr'], decay=self.config['optimizer']['decay'],
-                                     epsilon=self.config['optimizer']['epsilon'])
+        if self.ozer_type == 'adam':
+            return keras.optimizers.Adam(lr=self.config['optimizer']['lr'], 
+                                         decay=self.config['optimizer']['decay'],
+                                         epsilon=self.config['optimizer']['epsilon'])
+        elif self.ozer_type == 'rmsprop':
+            return keras.optimizers.RMSprop(lr=self.config['optimizer']['lr'])
 
     def get_pit_loss(self):
 

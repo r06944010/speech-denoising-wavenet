@@ -1,5 +1,6 @@
 python main.py --mode test --config sessions/test/config.json --noisy_input_path ./mix_1.wav
-python main.py --mode test --config sessions/test/config.json --noisy_input_path wsj0-mix/2speakers/wav8k/min/tt/mix/ --clean_input_path wsj0-mix/2speakers/wav8k/min/tt/
+python main.py --mode test --config sessions/1014_2/config.json --noisy_input_path wsj0-mix/2speakers/wav8k/min/tt/mix/ --clean_input_path wsj0-mix/2speakers/wav8k/min/tt/ --target_field_length 16001 --batch_size 4
+python main.py --config sessions/1014_2/config.json --target_field_length 3201 --batch_size 16 --load_checkpoint sessions/1014_2/checkpoints/checkpoint.00066-80.843.hdf5
 
 A Wavenet For Speech Denoising
 ====

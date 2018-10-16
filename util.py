@@ -41,11 +41,15 @@ def pit_loss(y_true, y_pred, l1_weight, l2_weight, m_l1_weight, m_l2_weight, pit
 
         e_loss_l1 = tf.reduce_sum(tf.abs(true_mix - pred_mix), axis=1)
         e_loss_l1 = tf.reduce_mean(e_loss_l1)
+        loss += m_l1_weight * e_loss_l1
+
+    if m_l2_weight != 0:
+        true_mix = tf.reduce_mean(y_true, 1)
+        pred_mix = tf.reduce_mean(y_pred, 1)
 
         e_loss_l2 = tf.reduce_sum(tf.square(true_mix-pred_mix), axis=1)
         e_loss_l2 = tf.reduce_mean(e_loss_l2)
-
-        loss += (m_l1_weight * e_loss_l1 + m_l2_weight * e_loss_l2)
+        loss += m_l2_weight * e_loss_l2
 
     return loss
 
