@@ -296,7 +296,6 @@ class DenoisingWavenet():
                                               self.config['model']['filters']['lengths']['final'][0],
                                               padding='same',
                                               use_bias=False)(data_out)
-
         # condition_out = keras.layers.Dense(self.config['model']['filters']['depths']['final'][0],
                                            # bias=False,
                                            # name='penultimate_conv_1d_condition')(condition_input)
@@ -311,7 +310,6 @@ class DenoisingWavenet():
                                               self.config['model']['filters']['lengths']['final'][1], 
                                               padding='same',
                                               use_bias=False)(data_out)
-
         # condition_out = keras.layers.Dense(self.config['model']['filters']['depths']['final'][1], bias=False,
                                            # name='final_conv_1d_condition')(condition_input)
 

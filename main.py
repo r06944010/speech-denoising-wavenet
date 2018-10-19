@@ -198,16 +198,11 @@ def inference(config, cla):
         if cla.clean_input_path is not None:
             if not cla.clean_input_path.endswith('/'):
                 cla.clean_input_path += '/'
-            clean_input = util.load_wav(cla.clean_input_path + filename, config['dataset']['sample_rate'])
-
-        input = {'noisy': noisy_input, 'clean': clean_input}
+            clean_input_1 = util.load_wav(cla.clean_input_path + 's1/' + filename, config['dataset']['sample_rate'])
+            clean_input_2 = util.load_wav(cla.clean_input_path + 's2/' + filename, config['dataset']['sample_rate'])
+        input = {'noisy': noisy_input, 'clean_1': clean_input_1, 'clean_2':clean_input_2}
 
         output_filename_prefix = filename[0:-4] + '_'
-
-        if config['model']['condition_encoding'] == 'one_hot':
-            condition_input = util.one_hot_encode(int(cla.condition_value), 29)[0]
-        else:
-            condition_input = util.binary_encode(int(cla.condition_value), 29)[0]
 
         if bool(cla.one_shot):
             if len(input['noisy']) % 2 == 0:  # If input length is even, remove one sample
@@ -216,10 +211,11 @@ def inference(config, cla):
                     input['clean'] = input['clean'][:-1]
             model = models.DenoisingWavenet(config, load_checkpoint=cla.load_checkpoint, input_length=len(input['noisy']), \
                                             print_model_summary=cla.print_model_summary)
-
+        condition_input = None
         print("Denoising: " + filename)
         denoise.denoise_sample(model, input, condition_input, batch_size, output_filename_prefix,
-                                            config['dataset']['sample_rate'], output_folder_path)
+                                            config['dataset']['sample_rate'], output_folder_path,
+                                            save_wav=True)
 
 
 def main():

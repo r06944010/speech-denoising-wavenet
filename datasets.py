@@ -76,7 +76,7 @@ class WSJ0():
         speech_onset_offset_indices = []
         regain_factors = []
         sequences = []
-        for filename in filenames:
+        for filename in filenames[:32]:
             speaker_name = filename.split('/')[-1].split('_')[0][:3] if spk=='a' else \
                 filename.split('/')[-1].split('_')[2][:3]
             speakers.append(speaker_name)
@@ -128,7 +128,8 @@ class WSJ0():
         if set not in ['train', 'valid', 'test']:
             raise ValueError("Argument SET must be either 'train' or 'test'")
 
-        n_data = {'train':20000,'valid':5000,'test':3000}
+        # n_data = {'train':20000,'valid':5000,'test':3000}
+        n_data = {'train':32,'valid':32,'test':32}
 
         while True:
             indices = np.arange((n_data[set] + self.batch_size - 1) // self.batch_size * self.batch_size)
@@ -166,12 +167,24 @@ class WSJ0():
                 for i, sample_i in enumerate(sample_indices):
                     speech_a = self.retrieve_sequence(set, 'a', sample_i)
                     speech_b = self.retrieve_sequence(set, 'b', sample_i)
-
-                    offset = np.squeeze(np.random.randint(0, len(speech_a) - self.model.input_length, 1))
-
-                    output_a = speech_a[offset:offset + self.model.input_length]
-                    output_b = speech_b[offset:offset + self.model.input_length]
-
+                    
+                    if len(speech_a) < self.model.target_field_length:
+                        offset = self.model.input_length // 2 - len(speech_a)
+                        output_a = np.zeros((self.model.input_length))
+                        output_a[offset:offset+len(speech_a)] = speech_a
+                        output_b = np.zeros((self.model.input_length))
+                        output_b[offset:offset+len(speech_a)] = speech_b
+                    else:
+                        pad_a = np.zeros((self.model.half_receptive_field_length*2 + len(speech_a)))
+                        pad_b = np.zeros((self.model.half_receptive_field_length*2 + len(speech_a)))
+                        
+                        pad_a[self.model.half_receptive_field_length:self.model.half_receptive_field_length+len(speech_a)] \
+                            = speech_a
+                        pad_b[self.model.half_receptive_field_length:self.model.half_receptive_field_length+len(speech_a)] \
+                            = speech_b
+                        offset = np.squeeze(np.random.randint(0, len(pad_a) - self.model.input_length, 1))
+                        output_a = pad_a[offset:offset + self.model.input_length]
+                        output_b = pad_b[offset:offset + self.model.input_length]
                     # if self.noise_only_percent > 0:
                     #     if np.random.uniform(0, 1) <= self.noise_only_percent:
                     #         input = output_noise #Noise only
