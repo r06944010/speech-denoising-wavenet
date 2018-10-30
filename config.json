@@ -21,11 +21,11 @@
             "depths": {
                 "res": 128,
                 "skip": 128,
-                "final": [64, 32]
+                "final": [2048, 256]
             }
         },
         "num_stacks": 2,
-        "target_field_length": 16001,
+        "target_field_length": 8001,
         "target_padding": 1
     },
     "optimizer": {
@@ -33,7 +33,7 @@
         "epsilon": 1e-08,
         "lr": 0.001,
         "momentum": 0.9,
-        "type": "rmsprop"
+        "type": "adam"
     },
     "training": {
         "batch_size": 10,

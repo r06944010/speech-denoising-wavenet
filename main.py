@@ -30,6 +30,7 @@ def get_command_line_arguments():
     parser.set_defaults(print_model_summary=False)
     parser.set_defaults(target_field_length=None)
     parser.set_defaults(use_condition=False)
+    parser.set_defaults(data_padding=True)
 
     parser.add_option('--mode', dest='mode')
     parser.add_option('--print_model_summary', dest='print_model_summary')
@@ -42,6 +43,12 @@ def get_command_line_arguments():
     parser.add_option('--clean_input_path', dest='clean_input_path')
     parser.add_option('--target_field_length', dest='target_field_length')
     parser.add_option('--use_condition', dest='use_condition')
+    parser.add_option('--data_padding', dest='data_padding')
+
+    parser.add_option('--use_pit', dest='use_pit', action='store_true')
+    parser.add_option('--no_pit', dest='use_pit', action='store_false')
+    parser.set_defaults(use_pit=True)
+
 
     (options, args) = parser.parse_args()
 
@@ -132,7 +139,13 @@ def test(config, cla):
         filenames = [filename for filename in os.listdir(cla.noisy_input_path) if filename.endswith('.wav')]
 
     clean_input_1 = clean_input_2 = None
+
+    with open('spk_info.json') as f:
+        spk_info = json.load(f)
+    
     snr = []
+    gender_stat = {'ch1':{'M':0,'F':0}, 'ch2':{'M':0,'F':0}}
+
     for filename in filenames:
         noisy_input = util.load_wav(cla.noisy_input_path + filename, config['dataset']['sample_rate'])
         if cla.clean_input_path is not None:
@@ -143,23 +156,34 @@ def test(config, cla):
         input = {'noisy': noisy_input, 'clean_1': clean_input_1, 'clean_2':clean_input_2}
 
         output_filename_prefix = filename[0:-4] + '_'
+        spk1 = output_filename_prefix.split('_')[0][:3]
+        spk2 = output_filename_prefix.split('_')[2][:3]
+
+        spk_gender = [spk_info[spk1], spk_info[spk2]]
 
         if bool(cla.one_shot):
             if len(input['noisy']) % 2 == 0:  # If input length is even, remove one sample
                 input['noisy'] = input['noisy'][:-1]
-                if input['clean'] is not None:
-                    input['clean'] = input['clean'][:-1]
+                input['clean_1'] = input['clean_1'][:-1]
+                input['clean_2'] = input['clean_2'][:-1]
             model = models.DenoisingWavenet(config, load_checkpoint=cla.load_checkpoint, input_length=len(input['noisy']), \
                                             print_model_summary=cla.print_model_summary)
 
         # print("Denoising: " + filename).
         condition_input = None
         print(filename)
-        _snr = denoise.denoise_sample(model, input, condition_input, batch_size, output_filename_prefix,
-                                      config['dataset']['sample_rate'], output_folder_path)
+        _snr, ch_gender = denoise.denoise_sample(model, input, condition_input, batch_size, output_filename_prefix,
+                                      config['dataset']['sample_rate'], output_folder_path, spk_gender=spk_gender,
+                                      use_pit=cla.use_pit)
+        print(_snr)
+        print(ch_gender)
+        for ch, stat in ch_gender.items():
+            for gen, num in stat.items():
+                gender_stat[ch][gen] += num
         snr.append(_snr)
     snr = np.array(snr)
     print('Testing SDR:', np.mean(snr))
+    print(gender_stat)
 
 def inference(config, cla):
 

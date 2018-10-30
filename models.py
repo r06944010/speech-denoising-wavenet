@@ -39,7 +39,7 @@ class DenoisingWavenet():
                                                                           self.dilations,
                                                                           config['model']['filters']['lengths']['res'],
                                                                           1)
-
+        print('Receptive Field Length:', self.receptive_field_length)
         if input_length is not None:
             self.input_length = input_length
             self.target_field_length = self.input_length - (self.receptive_field_length - 1)
@@ -51,7 +51,7 @@ class DenoisingWavenet():
             self.input_length = self.receptive_field_length + (self.target_field_length - 1)
         
         self.input_length = int(self.input_length)
-        
+        print('Input Length:', self.input_length)
         self.target_padding = config['model']['target_padding']
         self.padded_target_field_length = self.target_field_length + 2 * self.target_padding
         self.half_target_field_length = self.target_field_length // 2
@@ -258,10 +258,10 @@ class DenoisingWavenet():
         data_mix = keras.layers.Lambda(lambda x: keras.backend.sum(x, 1))(data_input)
         data_expanded = layers.AddSingletonDepth()(data_mix)
 
-        data_input_target_field_length = layers.Slice(
-            (slice(self.samples_of_interest_indices[0], self.samples_of_interest_indices[-1] + 1, 1), Ellipsis),
-            (self.padded_target_field_length,1),
-            name='data_input_target_field_length')(data_expanded)
+        # data_input_target_field_length = layers.Slice(
+            # (slice(self.samples_of_interest_indices[0], self.samples_of_interest_indices[-1] + 1, 1), Ellipsis),
+            # (self.padded_target_field_length,1),
+            # name='data_input_target_field_length')(data_expanded)
 
         data_out = keras.layers.Conv1D(self.config['model']['filters']['depths']['res'],
                                               self.config['model']['filters']['lengths']['res'],
@@ -319,7 +319,6 @@ class DenoisingWavenet():
         # data_out = keras.layers.Merge(mode='sum', name='final_conv_1d_condition_merge')([data_out, condition_out])
         
         data_out = keras.layers.Conv1D(2, 1)(data_out)
-
         out_speech = keras.layers.Lambda(lambda x: keras.backend.permute_dimensions(x, (0,2,1)), name='data_output')(data_out)
 
         # out_speech_2 = keras.layers.Lambda(lambda x: x[:,:,1],

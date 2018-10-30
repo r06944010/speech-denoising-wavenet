@@ -9,14 +9,17 @@ import numpy as np
 import mir_eval
 
 def denoise_sample(model, input, condition_input, batch_size, output_filename_prefix, sample_rate, 
-                    output_path, save_wav=False):
-
+                    output_path, save_wav=False, spk_gender=None, use_pit=False):
+    
     if len(input['noisy']) < model.receptive_field_length:
         raise ValueError('Input is not long enough to be used with this model.')
+    
 
     num_output_samples = input['noisy'].shape[0] - (model.receptive_field_length - 1)
     num_fragments = int(np.ceil(num_output_samples / model.target_field_length))
     num_batches = int(np.ceil(num_fragments / batch_size))
+
+    ch_gender = {'ch1':{'M':0,'F':0}, 'ch2':{'M':0,'F':0}}
 
     output_1 = []
     output_2 = []
@@ -48,23 +51,17 @@ def denoise_sample(model, input, condition_input, batch_size, output_filename_pr
         input_batch = np.concatenate([np.expand_dims(input_batch, 0), np.zeros_like(np.expand_dims(input_batch, 0))])
         input_batch = np.transpose(input_batch, (1,0,2))
 
-        output_1_fragments = model.denoise_batch({'data_input': input_batch})
- 
-        # if type(output_1_fragments) is list:
-        output_2_fragment = output_1_fragments[:, 0]
-        output_1_fragment = output_1_fragments[:, 1]
-
+        output_fragments = model.denoise_batch({'data_input': input_batch})
+        
+        output_1_fragment = output_fragments[:, 0]
+        output_2_fragment = output_fragments[:, 1]
+        
         output_1_fragment = output_1_fragment[:, model.target_padding: model.target_padding + model.target_field_length]
         output_1_fragment = output_1_fragment.flatten().tolist()
 
         output_2_fragment = output_2_fragment[:, model.target_padding: model.target_padding + model.target_field_length]
         output_2_fragment = output_2_fragment.flatten().tolist()
-
-        if type(output_1_fragments) is float:
-            output_1_fragment = [output_1_fragment]
-        if type(output_2_fragment) is float:
-            output_2_fragment = [output_2_fragment]
-
+        
         output_1 = output_1 + output_1_fragment
         output_2 = output_2 + output_2_fragment
 
@@ -74,19 +71,55 @@ def denoise_sample(model, input, condition_input, batch_size, output_filename_pr
     if num_pad_values != 0:
         output_1 = output_1[:-num_pad_values]
         output_2 = output_2[:-num_pad_values]
-    valid_noisy_signal = input['noisy'][
-                         model.half_receptive_field_length:model.half_receptive_field_length + len(output_1)]
 
+    valid_noisy_signal = input['noisy'][model.half_receptive_field_length:model.half_receptive_field_length + len(output_1)]
     valid_clean_signal_1 = input['clean_1'][
                      model.half_receptive_field_length:model.half_receptive_field_length + len(output_1)]
     valid_clean_signal_2 = input['clean_2'][
                      model.half_receptive_field_length:model.half_receptive_field_length + len(output_1)]
-
-    clean_wav = np.array([valid_clean_signal_1, valid_clean_signal_2])
-    noisy_wav = np.array([output_1, output_2])
-
-    _sdr, _sir, _sar, _popt = mir_eval.separation.bss_eval_sources(np.array(clean_wav), np.array(noisy_wav))
-    print(_sdr)
+    if use_pit  == True:
+        pit_output_1 = []
+        pit_output_2 = []
+        for f in range(num_fragments):
+            c1 = valid_clean_signal_1[f*model.target_field_length:(f+1)*model.target_field_length]
+            c2 = valid_clean_signal_2[f*model.target_field_length:(f+1)*model.target_field_length]
+            o1 = output_1[f*model.target_field_length:(f+1)*model.target_field_length]
+            o2 = output_2[f*model.target_field_length:(f+1)*model.target_field_length]
+            perm = np.argmin([np.sum(np.abs(c1-o1)+np.abs(c2-o2)), np.sum(np.abs(c1-o2)+np.abs(c2-o1))])
+            if perm == 0:
+                ch_gender['ch1'][spk_gender[0]] += 1
+                ch_gender['ch2'][spk_gender[1]] += 1
+                pit_output_1 += o1.tolist()
+                pit_output_2 += o2.tolist()
+            else:
+                ch_gender['ch1'][spk_gender[1]] += 1
+                ch_gender['ch2'][spk_gender[0]] += 1
+                pit_output_1 += o2.tolist()
+                pit_output_2 += o1.tolist()
+        
+        clean_wav = np.array([valid_clean_signal_1, valid_clean_signal_2])
+        noisy_wav = np.array([pit_output_1, pit_output_2])
+        
+        _sdr1, _sir, _sar, _popt = mir_eval.separation.bss_eval_sources(np.array(clean_wav[0]), np.array(noisy_wav[0]))
+        _sdr2, _sir, _sar, _popt = mir_eval.separation.bss_eval_sources(np.array(clean_wav[1]), np.array(noisy_wav[1]))
+   
+        return np.array([_sdr1, _sdr2]), ch_gender
+    
+    else:
+        clean_wav = np.array([valid_clean_signal_1, valid_clean_signal_2])
+        noisy_wav = np.array([output_1, output_2])
+        _sdr1, _sir, _sar, _popt = mir_eval.separation.bss_eval_sources(np.array(clean_wav[0]), np.array(noisy_wav[0]))
+        _sdr2, _sir, _sar, _popt = mir_eval.separation.bss_eval_sources(np.array(clean_wav[1]), np.array(noisy_wav[1]))
+        _sdr3, _sir, _sar, _popt = mir_eval.separation.bss_eval_sources(np.array(clean_wav[0]), np.array(noisy_wav[1]))
+        _sdr4, _sir, _sar, _popt = mir_eval.separation.bss_eval_sources(np.array(clean_wav[1]), np.array(noisy_wav[0]))
+        if _sdr1 + _sdr2 > _sdr3 + _sdr4:
+            ch_gender['ch1'][spk_gender[0]] += 1
+            ch_gender['ch2'][spk_gender[1]] += 1
+            return np.array([_sdr1, _sdr2]), ch_gender
+        else:
+            ch_gender['ch1'][spk_gender[1]] += 1
+            ch_gender['ch2'][spk_gender[0]] += 1
+            return np.array([_sdr3, _sdr4]), ch_gender
 
     if save_wav:
         # output_clean_filename = output_filename_prefix + 'clean.wav'
@@ -108,10 +141,6 @@ def denoise_sample(model, input, condition_input, batch_size, output_filename_pr
         # plt.plot(output_1)
         # plt.plot(output_2)
         # plt.show()
-
-
-
-    return(_sdr)
 
     #     noise_in_output_1 = output_1 - valid_clean_signal
 

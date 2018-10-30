@@ -123,7 +123,7 @@ class WSJ0():
 
         return np.array(sequence)
 
-    def get_random_batch_generator(self, set, shuffle=True):
+    def get_random_batch_generator(self, set, shuffle=True, pad=True):
 
         if set not in ['train', 'valid', 'test']:
             raise ValueError("Argument SET must be either 'train' or 'test'")
@@ -138,7 +138,7 @@ class WSJ0():
             if shuffle:
                 np.random.shuffle(indices)
             beg = 0
-
+            
             # for _idx in range(len(indices)):
                 # sample_i = indices[_idx]
                 # speech_a = self.retrieve_sequence(set, 'a', sample_i)
@@ -167,24 +167,26 @@ class WSJ0():
                 for i, sample_i in enumerate(sample_indices):
                     speech_a = self.retrieve_sequence(set, 'a', sample_i)
                     speech_b = self.retrieve_sequence(set, 'b', sample_i)
-                    
-                    if len(speech_a) < self.model.target_field_length:
-                        offset = self.model.input_length // 2 - len(speech_a)
-                        output_a = np.zeros((self.model.input_length))
-                        output_a[offset:offset+len(speech_a)] = speech_a
-                        output_b = np.zeros((self.model.input_length))
-                        output_b[offset:offset+len(speech_a)] = speech_b
+                    if pad: 
+                        if len(speech_a) < self.model.target_field_length:
+                            offset = self.model.input_length // 2 - len(speech_a)
+                            output_a = np.zeros((self.model.input_length))
+                            output_a[offset:offset+len(speech_a)] = speech_a
+                            output_b = np.zeros((self.model.input_length))
+                            output_b[offset:offset+len(speech_a)] = speech_b
+                        else:
+                            pad_a = np.zeros((self.model.half_receptive_field_length*2 + len(speech_a)))
+                            pad_b = np.zeros((self.model.half_receptive_field_length*2 + len(speech_a)))
+                            
+                            pad_a[self.model.half_receptive_field_length:self.model.half_receptive_field_length+len(speech_a)]                                  = speech_a
+                            pad_b[self.model.half_receptive_field_length:self.model.half_receptive_field_length+len(speech_a)]                                  = speech_b
+                            offset = np.squeeze(np.random.randint(0, len(pad_a) - self.model.input_length, 1))
+                            output_a = pad_a[offset:offset + self.model.input_length]
+                            output_b = pad_b[offset:offset + self.model.input_length]
                     else:
-                        pad_a = np.zeros((self.model.half_receptive_field_length*2 + len(speech_a)))
-                        pad_b = np.zeros((self.model.half_receptive_field_length*2 + len(speech_a)))
-                        
-                        pad_a[self.model.half_receptive_field_length:self.model.half_receptive_field_length+len(speech_a)] \
-                            = speech_a
-                        pad_b[self.model.half_receptive_field_length:self.model.half_receptive_field_length+len(speech_a)] \
-                            = speech_b
-                        offset = np.squeeze(np.random.randint(0, len(pad_a) - self.model.input_length, 1))
-                        output_a = pad_a[offset:offset + self.model.input_length]
-                        output_b = pad_b[offset:offset + self.model.input_length]
+                        offset = np.squeeze(np.random.randint(0, len(speech_a) - self.model.input_length, 1))
+                        output_a = speech_a[offset:offset + self.model.input_length]
+                        output_b = speech_b[offset:offset + self.model.input_length]
                     # if self.noise_only_percent > 0:
                     #     if np.random.uniform(0, 1) <= self.noise_only_percent:
                     #         input = output_noise #Noise only
