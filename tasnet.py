@@ -13,7 +13,7 @@ import itertools
 
 #Speech Denoising Wavenet Model
 
-class DenoisingWavenet():
+class TasNet():
 
 
     def __init__(self, config, load_checkpoint=None, input_length=None, target_field_length=None, print_model_summary=False):
@@ -22,8 +22,7 @@ class DenoisingWavenet():
         self.verbosity = config['training']['verbosity']
 
         self.batch_size = config['training']['batch_size']
-        self.n_speaker = config['training']['n_speaker']
-        self.n_output = config['training']['n_output']
+        self.n_speaker = 2
 
         self.num_stacks = self.config['model']['num_stacks']
         if type(self.config['model']['dilations']) is int:
@@ -152,10 +151,7 @@ class DenoisingWavenet():
             y_true, y_pred, self.config['training']['loss']['out']['l1'],
             self.config['training']['loss']['out']['l2'],
             self.config['training']['loss']['mix']['l1'],
-            self.config['training']['loss']['mix']['l2'],
-            sdr_w=self.config['training']['loss']['out']['sdr'],
-            n_speaker=self.n_speaker,
-            n_output=self.n_output)
+            self.config['training']['loss']['mix']['l2'])
 
     def get_callbacks(self):
 
@@ -210,7 +206,7 @@ class DenoisingWavenet():
         return self.input_length // 2
 
     def get_metrics(self):
-        return [self.batch_sdr]
+        return [self.batch_snr]
 
     def valid_mean_absolute_error(self, y_true, y_pred):
         return keras.backend.mean(
@@ -244,39 +240,6 @@ class DenoisingWavenet():
 
         coeff = 4.342944819
         return tf.reduce_mean(coeff * (tf.log(signal_pwr + 1e-7) - tf.log(noise_pwr + 1e-7)))
-    
-    def batch_sdr(self, y_true, y_pred):
-        pit_axis = 1
-
-        v_perms = tf.constant(list(itertools.permutations(range(self.n_output), self.n_speaker)))
-        v_perms_onehot = tf.one_hot(v_perms, self.n_output)
-
-        t = tf.tile(tf.expand_dims(y_true, pit_axis+1), [1,1,self.n_output,1])
-        p = tf.tile(tf.expand_dims(y_pred, pit_axis), [1,self.n_speaker,1,1])
-
-        diff = tf.expand_dims(y_true, pit_axis+1) - tf.expand_dims(y_pred, pit_axis)
-        up = tf.reduce_sum(t*p, -1)
-        down = tf.sqrt(tf.reduce_sum(tf.square(t), -1)) * tf.sqrt(tf.reduce_sum(tf.square(p), -1))
-        loss_sets = tf.einsum('bij,pij->bp', -up/down, v_perms_onehot)
-        s_perm_sets = tf.argmin(loss_sets, 1)
-
-        s_perm_idxs = tf.stack([
-            tf.tile(
-                tf.expand_dims(tf.range(self.batch_size), 1),
-                [1, self.n_speaker]),
-            tf.gather(v_perms, s_perm_sets)], axis=2)
-
-        s_perm_idxs = tf.reshape(s_perm_idxs, [self.batch_size*self.n_speaker, 2])
-        y_pred = tf.gather_nd(y_pred, s_perm_idxs)
-        y_pred = tf.reshape(y_pred, [self.batch_size, self.n_speaker, -1])
-
-        coeff = 4.342944819
-
-        def _dot(x,y):
-            return tf.reduce_sum(x*y, -1)
-
-        return tf.reduce_mean(coeff * (tf.log(_dot(y_true, y_pred)**2) - \
-                tf.log(_dot(y_true,y_true) * _dot(y_pred,y_pred) - _dot(y_true, y_pred)**2)))
 
     def get_condition_input_length(self, representation):
 
@@ -289,30 +252,16 @@ class DenoisingWavenet():
         data_input = keras.layers.Input(
                 shape=(2, self.input_length,),
                 name='data_input')
-        # condition_input = keras.engine.Input(shape=(self.condition_input_length,),
-                                             # name='condition_input')
-        
+       
         data_mix = keras.layers.Lambda(lambda x: keras.backend.sum(x, 1))(data_input)
         data_expanded = layers.AddSingletonDepth()(data_mix)
 
-        # data_input_target_field_length = layers.Slice(
-            # (slice(self.samples_of_interest_indices[0], self.samples_of_interest_indices[-1] + 1, 1), Ellipsis),
-            # (self.padded_target_field_length,1),
-            # name='data_input_target_field_length')(data_expanded)
 
         data_out = keras.layers.Conv1D(self.config['model']['filters']['depths']['res'],
                                               self.config['model']['filters']['lengths']['res'],
                                               padding='same',
                                               use_bias=False,
                                               name='initial_causal_conv')(data_expanded)
-
-        # condition_out = keras.layers.Dense(self.config['model']['filters']['depths']['res'],
-                                           # name='initial_dense_condition',
-                                           # bias=False)(condition_input)
-        # condition_out = keras.layers.RepeatVector(self.input_length,
-                                                  # name='initial_condition_repeat')(condition_out)
-        # data_out = keras.layers.Merge(mode='sum', name='initial_data_condition_merge')(
-            # [data_out, condition_out])
 
         skip_connections = []
         res_block_i = 0
@@ -355,7 +304,7 @@ class DenoisingWavenet():
 
         # data_out = keras.layers.Merge(mode='sum', name='final_conv_1d_condition_merge')([data_out, condition_out])
         
-        data_out = keras.layers.Conv1D(self.n_output, 1)(data_out)
+        data_out = keras.layers.Conv1D(2, 1)(data_out)
         out_speech = keras.layers.Lambda(lambda x: keras.backend.permute_dimensions(x, (0,2,1)), name='data_output')(data_out)
 
         # out_speech_2 = keras.layers.Lambda(lambda x: x[:,:,1],

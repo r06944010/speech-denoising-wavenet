@@ -49,6 +49,9 @@ def get_command_line_arguments():
     parser.add_option('--no_pit', dest='use_pit', action='store_false')
     parser.set_defaults(use_pit=True)
 
+    parser.add_option('--use_pad', dest='zero_pad', action='store_true')
+    parser.add_option('--no_pad', dest='zero_pad', action='store_false')
+    parser.set_defaults(zero_pad=True)
 
     (options, args) = parser.parse_args()
 
@@ -84,11 +87,11 @@ def training(config, cla):
 
     num_train_samples = config['training']['num_train_samples'] // config['training']['batch_size']
     num_valid_samples = config['training']['num_valid_samples'] // config['training']['batch_size'] 
-    train_set_generator = dataset.get_random_batch_generator('train')
-    valid_set_generator = dataset.get_random_batch_generator('valid')
+    train_set_generator = dataset.get_random_batch_generator('train', pad=cla.zero_pad)
+    valid_set_generator = dataset.get_random_batch_generator('valid', pad=cla.zero_pad)
 
-    # num_train_samples = dataset.get_num_batch_in_dataset('train')
-    # num_valid_samples = dataset.get_num_batch_in_dataset('valid')
+    num_train_samples = 10 #dataset.get_num_batch_in_dataset('train')
+    num_valid_samples = 10 #dataset.get_num_batch_in_dataset('valid')
 
     model.fit_model(train_set_generator, num_train_samples, valid_set_generator, num_valid_samples, \
                     config['training']['num_epochs'])
@@ -117,28 +120,15 @@ def test(config, cla):
     if cla.target_field_length is not None:
         cla.target_field_length = int(cla.target_field_length)
 
-    if not bool(cla.one_shot):
-        model = models.DenoisingWavenet(config, target_field_length=cla.target_field_length,
-                                        load_checkpoint=cla.load_checkpoint, print_model_summary=cla.print_model_summary)
-        print('Performing inference..')
-    else:
-        print('Performing one-shot inference..')
+    model = models.DenoisingWavenet(config, target_field_length=cla.target_field_length,
+                                    load_checkpoint=cla.load_checkpoint, print_model_summary=cla.print_model_summary)
 
     samples_folder_path = os.path.join(config['training']['path'], 'samples')
     output_folder_path = get_valid_output_folder_path(samples_folder_path)
 
-    #If input_path is a single wav file, then set filenames to single element with wav filename
-    if cla.noisy_input_path.endswith('.wav'):
-        filenames = [cla.noisy_input_path.rsplit('/', 1)[-1]]
-        cla.noisy_input_path = cla.noisy_input_path.rsplit('/', 1)[0] + '/'
-        if cla.clean_input_path is not None:
-            cla.clean_input_path = cla.clean_input_path.rsplit('/', 1)[0] + '/'
-    else:
-        if not cla.noisy_input_path.endswith('/'):
-            cla.noisy_input_path += '/'
-        filenames = [filename for filename in os.listdir(cla.noisy_input_path) if filename.endswith('.wav')]
-
-    clean_input_1 = clean_input_2 = None
+    if not cla.noisy_input_path.endswith('/'):
+        cla.noisy_input_path += '/'
+    filenames = [filename for filename in os.listdir(cla.noisy_input_path) if filename.endswith('.wav')]
 
     with open('spk_info.json') as f:
         spk_info = json.load(f)
@@ -158,25 +148,17 @@ def test(config, cla):
         output_filename_prefix = filename[0:-4] + '_'
         spk1 = output_filename_prefix.split('_')[0][:3]
         spk2 = output_filename_prefix.split('_')[2][:3]
-
         spk_gender = [spk_info[spk1], spk_info[spk2]]
-
-        if bool(cla.one_shot):
-            if len(input['noisy']) % 2 == 0:  # If input length is even, remove one sample
-                input['noisy'] = input['noisy'][:-1]
-                input['clean_1'] = input['clean_1'][:-1]
-                input['clean_2'] = input['clean_2'][:-1]
-            model = models.DenoisingWavenet(config, load_checkpoint=cla.load_checkpoint, input_length=len(input['noisy']), \
-                                            print_model_summary=cla.print_model_summary)
 
         # print("Denoising: " + filename).
         condition_input = None
         print(filename)
         _snr, ch_gender = denoise.denoise_sample(model, input, condition_input, batch_size, output_filename_prefix,
                                       config['dataset']['sample_rate'], output_folder_path, spk_gender=spk_gender,
-                                      use_pit=cla.use_pit)
+                                      use_pit=cla.use_pit, pad=cla.zero_pad)
         print(_snr)
         print(ch_gender)
+        exit()
         for ch, stat in ch_gender.items():
             for gen, num in stat.items():
                 gender_stat[ch][gen] += num

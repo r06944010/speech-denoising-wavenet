@@ -13,11 +13,24 @@ import keras.backend as K
 import tensorflow as tf
 import itertools
 
-def pit_loss(y_true, y_pred, l1_weight, l2_weight, m_l1_weight, m_l2_weight, pit_axis=1, n_speaker=2):
+def pit_loss(y_true, y_pred, l1_weight, l2_weight, m_l1_weight, m_l2_weight, sdr_w=0, pit_axis=1, n_speaker=2, n_output=2):
 
+    # TODO 1: # output channel != # speaker
     loss = 0
-    perms = np.array(list(itertools.permutations(range(n_speaker))))
-    perms_onehot = tf.one_hot(perms, n_speaker)
+
+    # perms = tf.constant(list(itertools.permutations(range(n_speaker))))
+    perms = tf.constant(list(itertools.permutations(range(n_output), n_speaker)))
+    perms_onehot = tf.one_hot(perms, n_output)
+
+    if sdr_w != 0:
+        t = tf.tile(tf.expand_dims(y_true, pit_axis+1), [1,1,n_output,1])
+        p = tf.tile(tf.expand_dims(y_pred, pit_axis), [1,n_speaker,1,1])
+        up = tf.reduce_sum(t*p, -1)
+        down = tf.sqrt(tf.reduce_sum(tf.square(t), -1)) * tf.sqrt(tf.reduce_sum(tf.square(p), -1))
+        loss_sets = tf.einsum('bij,pij->bp', -up/down, perms_onehot)
+        sdr_loss = tf.reduce_min(loss_sets, axis=1)
+        sdr_loss = tf.reduce_mean(sdr_loss)
+        loss += sdr_w * sdr_loss
 
     y_cross_loss = K.expand_dims(y_true, pit_axis+1) - K.expand_dims(y_pred, pit_axis)
 

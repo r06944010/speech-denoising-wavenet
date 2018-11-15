@@ -25,7 +25,7 @@
             }
         },
         "num_stacks": 2,
-        "target_field_length": 8001,
+        "target_field_length": 1601,
         "target_padding": 1
     },
     "optimizer": {
@@ -36,18 +36,20 @@
         "type": "adam"
     },
     "training": {
-        "batch_size": 10,
+        "n_speaker":2,
+        "n_output":4,
+        "batch_size": 8,
         "early_stopping_patience": 10,
         "loss": {
             "out": {
-                "l1": 1,
+                "l1": 0,
                 "l2": 0,
-                "weight": 1
+                "sdr": 1
             },
             "mix": {
                 "l1": 0,
                 "l2": 0,
-                "weight": 1
+                "sdr": 0
             }
         },
         "num_epochs": 200,

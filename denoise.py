@@ -9,11 +9,15 @@ import numpy as np
 import mir_eval
 
 def denoise_sample(model, input, condition_input, batch_size, output_filename_prefix, sample_rate, 
-                    output_path, save_wav=False, spk_gender=None, use_pit=False):
+                    output_path, save_wav=False, spk_gender=None, use_pit=False, pad=False):
+    pad = True 
+    if pad:
+        noisy_pad = np.zeros((model.half_receptive_field_length*2 + len(input['noisy'])))
+        noisy_pad[model.half_receptive_field_length:model.half_receptive_field_length+len(input['noisy'])] = input['noisy']
+        input['noisy'] = noisy_pad
     
     if len(input['noisy']) < model.receptive_field_length:
         raise ValueError('Input is not long enough to be used with this model.')
-    
 
     num_output_samples = input['noisy'].shape[0] - (model.receptive_field_length - 1)
     num_fragments = int(np.ceil(num_output_samples / model.target_field_length))
@@ -74,9 +78,10 @@ def denoise_sample(model, input, condition_input, batch_size, output_filename_pr
 
     valid_noisy_signal = input['noisy'][model.half_receptive_field_length:model.half_receptive_field_length + len(output_1)]
     valid_clean_signal_1 = input['clean_1'][
-                     model.half_receptive_field_length:model.half_receptive_field_length + len(output_1)]
+                     model.half_receptive_field_length:model.half_receptive_field_length + len(output_1)] if not pad else input['clean_1']
     valid_clean_signal_2 = input['clean_2'][
-                     model.half_receptive_field_length:model.half_receptive_field_length + len(output_1)]
+                     model.half_receptive_field_length:model.half_receptive_field_length + len(output_1)] if not pad else input['clean_2']
+
     if use_pit  == True:
         pit_output_1 = []
         pit_output_2 = []
@@ -122,25 +127,18 @@ def denoise_sample(model, input, condition_input, batch_size, output_filename_pr
             return np.array([_sdr3, _sdr4]), ch_gender
 
     if save_wav:
-        # output_clean_filename = output_filename_prefix + 'clean.wav'
-        # output_clean_filepath = os.path.join(output_path, output_clean_filename)
-        # util.write_wav(valid_clean_signal, output_clean_filepath, sample_rate)
         output_original_filename = output_filename_prefix + 'orig.wav'
-        output_denoised_filename = output_filename_prefix + 's1.wav'
-        output_noise_filename = output_filename_prefix + 's2.wav'
+        output_s1_filename = output_filename_prefix + 's1.wav'
+        output_s2_filename = output_filename_prefix + 's2.wav'
 
         output_original_filepath = os.path.join(output_path, output_original_filename)
-        output_denoised_filepath = os.path.join(output_path, output_denoised_filename)
-        output_noise_filepath = os.path.join(output_path, output_noise_filename)
+        output_s1_filepath = os.path.join(output_path, output_s1_filename)
+        output_s2_filepath = os.path.join(output_path, output_s2_filename)
         print(output_denoised_filepath)
 
         util.write_wav(valid_noisy_signal, output_original_filepath, sample_rate)
-        util.write_wav(output_1, output_denoised_filepath, sample_rate)
-        util.write_wav(output_2, output_noise_filepath, sample_rate)
-        # import matplotlib.pyplot as plt
-        # plt.plot(output_1)
-        # plt.plot(output_2)
-        # plt.show()
+        util.write_wav(output_1, output_s1_filepath, sample_rate)
+        util.write_wav(output_2, output_s2_filepath, sample_rate)
 
     #     noise_in_output_1 = output_1 - valid_clean_signal
 
