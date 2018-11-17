@@ -20,8 +20,8 @@ def pit_loss(y_true, y_pred, l1_weight, l2_weight, m_l1_weight, m_l2_weight, sdr
     loss = 0
 
     if mute_other_channel:
-        n_speaker = n_output
         y_true = tf.pad(y_true, [[0,0], [0,n_output-n_speaker],[0,0]])
+        n_speaker = n_output
 
     # perms = tf.constant(list(itertools.permutations(range(n_speaker))))
     perms = tf.constant(list(itertools.permutations(range(n_output), n_speaker)))

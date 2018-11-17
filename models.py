@@ -257,7 +257,6 @@ class DenoisingWavenet():
         t = tf.tile(tf.expand_dims(y_true, pit_axis+1), [1,1,self.n_output,1])
         p = tf.tile(tf.expand_dims(y_pred, pit_axis), [1,self.n_speaker,1,1])
 
-        diff = tf.expand_dims(y_true, pit_axis+1) - tf.expand_dims(y_pred, pit_axis)
         up = tf.reduce_sum(t*p, -1)
         down = tf.sqrt(tf.reduce_sum(tf.square(t), -1)) * tf.sqrt(tf.reduce_sum(tf.square(p), -1))
         loss_sets = tf.einsum('bij,pij->bp', -up/down, v_perms_onehot)

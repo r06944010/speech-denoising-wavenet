@@ -43,9 +43,9 @@
         "early_stopping_patience": 10,
         "loss": {
             "out": {
-                "l1": 0,
+                "l1": 1,
                 "l2": 0,
-                "sdr": 1
+                "sdr": 0
             },
             "mix": {
                 "l1": 0,
