@@ -8,6 +8,9 @@ import tqdm
 import numpy as np
 import mir_eval
 
+def signal_to_distortion_ratio(x,y):
+    return 10 * np.log10(np.square(np.dot(x,y)) / (np.dot(x,x)*np.dot(y,y) - np.square(np.dot(x,y))))
+
 def denoise_sample(model, input, condition_input, batch_size, output_filename_prefix, sample_rate, 
                     output_path, save_wav=False, spk_gender=None, use_pit=False, pad=False):
     pad = True 
@@ -101,12 +104,21 @@ def denoise_sample(model, input, condition_input, batch_size, output_filename_pr
                 ch_gender['ch2'][spk_gender[0]] += 1
                 pit_output_1 += o2.tolist()
                 pit_output_2 += o1.tolist()
+
+        # valid_clean_signal_1 = np.zeros_like(valid_clean_signal_1)
+        # valid_clean_signal_1.fill(1e-16)
+        # pit_output_1 = np.zeros_like(pit_output_1)
+        # pit_output_1.fill(1e-14)
         
         clean_wav = np.array([valid_clean_signal_1, valid_clean_signal_2])
         noisy_wav = np.array([pit_output_1, pit_output_2])
         
-        _sdr1, _sir, _sar, _popt = mir_eval.separation.bss_eval_sources(np.array(clean_wav[0]), np.array(noisy_wav[0]))
-        _sdr2, _sir, _sar, _popt = mir_eval.separation.bss_eval_sources(np.array(clean_wav[1]), np.array(noisy_wav[1]))
+        _sdr1, _sir, _sar, _popt = mir_eval.separation.bss_eval_sources(clean_wav[0], noisy_wav[0])
+        _sdr2, _sir, _sar, _popt = mir_eval.separation.bss_eval_sources(clean_wav[1], noisy_wav[1])
+        
+        # s1 = signal_to_distortion_ratio(clean_wav[0], noisy_wav[0])
+        # s2 = signal_to_distortion_ratio(clean_wav[1], noisy_wav[1])
+        # print(s1, s2)
    
         return np.array([_sdr1, _sdr2]), ch_gender
     

@@ -13,10 +13,15 @@ import keras.backend as K
 import tensorflow as tf
 import itertools
 
-def pit_loss(y_true, y_pred, l1_weight, l2_weight, m_l1_weight, m_l2_weight, sdr_w=0, pit_axis=1, n_speaker=2, n_output=2):
+def pit_loss(y_true, y_pred, l1_weight, l2_weight, m_l1_weight, m_l2_weight, sdr_w=0, pit_axis=1, n_speaker=2, n_output=2,\
+             mute_other_channel=False):
 
     # TODO 1: # output channel != # speaker
     loss = 0
+
+    if mute_other_channel:
+        n_speaker = n_output
+        y_true = tf.pad(y_true, [[0,0], [0,n_output-n_speaker],[0,0]])
 
     # perms = tf.constant(list(itertools.permutations(range(n_speaker))))
     perms = tf.constant(list(itertools.permutations(range(n_output), n_speaker)))

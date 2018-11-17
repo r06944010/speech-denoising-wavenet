@@ -22,10 +22,12 @@ class DenoisingWavenet():
         self.verbosity = config['training']['verbosity']
 
         self.batch_size = config['training']['batch_size']
-        self.n_speaker = config['training']['n_speaker']
-        self.n_output = config['training']['n_output']
+        self.n_speaker = config['training']['n_speaker'] if 'n_speaker' in config['training'] else 2
+        self.n_output = config['training']['n_output']  if 'n_output' in config['training'] else 2
+        self.mute_other_channel = config['training']['mute_other_channel'] if 'mute_other_channel' in config['training'] else False
 
         self.num_stacks = self.config['model']['num_stacks']
+        
         if type(self.config['model']['dilations']) is int:
             self.dilations = [2 ** i for i in range(0, self.config['model']['dilations'] + 1)]
         elif type(self.config['model']['dilations']) is list:
@@ -153,9 +155,10 @@ class DenoisingWavenet():
             self.config['training']['loss']['out']['l2'],
             self.config['training']['loss']['mix']['l1'],
             self.config['training']['loss']['mix']['l2'],
-            sdr_w=self.config['training']['loss']['out']['sdr'],
+            sdr_w=self.config['training']['loss']['out']['sdr'] if 'sdr' in self.config['training']['loss']['out'] else 0,
             n_speaker=self.n_speaker,
-            n_output=self.n_output)
+            n_output=self.n_output,
+            mute_other_channel=self.mute_other_channel)
 
     def get_callbacks(self):
 

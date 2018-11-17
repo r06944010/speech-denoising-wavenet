@@ -25,7 +25,7 @@
             }
         },
         "num_stacks": 2,
-        "target_field_length": 1601,
+        "target_field_length": 3201,
         "target_padding": 1
     },
     "optimizer": {
@@ -38,7 +38,8 @@
     "training": {
         "n_speaker":2,
         "n_output":4,
-        "batch_size": 8,
+        "mute_other_channel":true,
+        "batch_size": 16,
         "early_stopping_patience": 10,
         "loss": {
             "out": {

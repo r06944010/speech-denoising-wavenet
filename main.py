@@ -90,8 +90,8 @@ def training(config, cla):
     train_set_generator = dataset.get_random_batch_generator('train', pad=cla.zero_pad)
     valid_set_generator = dataset.get_random_batch_generator('valid', pad=cla.zero_pad)
 
-    num_train_samples = 10 #dataset.get_num_batch_in_dataset('train')
-    num_valid_samples = 10 #dataset.get_num_batch_in_dataset('valid')
+    # num_train_samples = 10 #dataset.get_num_batch_in_dataset('train')
+    # num_valid_samples = 10 #dataset.get_num_batch_in_dataset('valid')
 
     model.fit_model(train_set_generator, num_train_samples, valid_set_generator, num_valid_samples, \
                     config['training']['num_epochs'])
@@ -158,7 +158,6 @@ def test(config, cla):
                                       use_pit=cla.use_pit, pad=cla.zero_pad)
         print(_snr)
         print(ch_gender)
-        exit()
         for ch, stat in ch_gender.items():
             for gen, num in stat.items():
                 gender_stat[ch][gen] += num
