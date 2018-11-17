@@ -27,7 +27,7 @@ class DenoisingWavenet():
         self.mute_other_channel = config['training']['mute_other_channel'] if 'mute_other_channel' in config['training'] else False
 
         self.num_stacks = self.config['model']['num_stacks']
-        
+
         if type(self.config['model']['dilations']) is int:
             self.dilations = [2 ** i for i in range(0, self.config['model']['dilations'] + 1)]
         elif type(self.config['model']['dilations']) is list:
@@ -222,8 +222,8 @@ class DenoisingWavenet():
     def batch_snr(self, y_true, y_pred):
         pit_axis = 1
 
-        v_perms = tf.constant(list(itertools.permutations(range(self.n_speaker))))
-        v_perms_onehot = tf.one_hot(v_perms, self.n_speaker)
+        v_perms = tf.constant(list(itertools.permutations(range(self.n_output), self.n_speaker)))
+        v_perms_onehot = tf.one_hot(v_perms, self.n_output)
 
         diff = tf.expand_dims(y_true, pit_axis+1) - tf.expand_dims(y_pred, pit_axis)
 
