@@ -4,7 +4,7 @@
         "in_memory_percentage": 1,
         "noise_only_percent": 0.0,
         "num_condition_classes": 119,
-        "path": "data/NSDTSEA/",
+        "path": "./merl_path/2spk/min/",
         "regain": 0.06,
         "sample_rate": 8000,
         "type": "wsj0-mix"

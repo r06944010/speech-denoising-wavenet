@@ -90,6 +90,9 @@ class DenoisingWavenet():
                                              self.config['training']['path'].rindex('/') + 1:] + '.csv'
 
         model = self.build_model()
+        # model = self.build_tasnet()
+        print('Building Complete')
+        # exit()
 
         if os.path.exists(self.checkpoints_path) and util.dir_contains_files(self.checkpoints_path):
 
@@ -445,3 +448,48 @@ class DenoisingWavenet():
         res_x = keras.layers.Add()([original_x, res_x])
 
         return res_x, skip_x
+
+    def build_tasnet(self):
+        data_input = tf.placeholder(tf.float64, [self.batch_size, self.n_speaker, self.input_length], name='data_input')
+        data_mix = tf.reduce_sum(data_input, 1)
+        data_expanded = tf.expand_dims(data_mix, -1)
+        data_encode = tf.layers.conv1d(data_expanded, self.config['model']['filters']['depths']['res'], 
+                                        self.config['model']['filters']['lengths']['res'])
+        data_encode = tf.nn.relu(data_encode)
+        
+        # data_sep = tf.contrib.layers.instance_norm(tf.expand_dims(data_encode,-1))
+        data_sep = tf.contrib.layers.instance_norm(data_encode)
+        print(data_sep)
+        exit()
+
+
+        skip_connections = []
+        res_block_i = 0
+        for stack_i in range(self.num_stacks):
+            layer_in_stack = 0
+            for dilation in self.dilations:
+                res_block_i += 1
+                data_out, skip_out = self.dilated_residual_block(data_out, res_block_i, \
+                                                                 layer_in_stack, dilation, stack_i)
+                if skip_out is not None:
+                    skip_connections.append(skip_out)
+                layer_in_stack += 1
+
+        data_out = keras.layers.Add()(skip_connections)
+        data_out = self.activation(data_out)
+
+        data_out = keras.layers.Conv1D(self.config['model']['filters']['depths']['final'][0],
+                                              self.config['model']['filters']['lengths']['final'][0],
+                                              padding='same',
+                                              use_bias=False)(data_out)
+
+        data_out = self.activation(data_out)
+        data_out = keras.layers.Conv1D(self.config['model']['filters']['depths']['final'][1],
+                                              self.config['model']['filters']['lengths']['final'][1], 
+                                              padding='same',
+                                              use_bias=False)(data_out)
+
+        data_out = keras.layers.Conv1D(self.n_output, 1)(data_out)
+        out_speech = keras.layers.Lambda(lambda x: keras.backend.permute_dimensions(x, (0,2,1)), name='data_output')(data_out)
+
+        return keras.engine.Model(inputs=[data_input], outputs=[out_speech])

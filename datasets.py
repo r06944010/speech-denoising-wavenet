@@ -32,22 +32,22 @@ class WSJ0():
 
         print('Loading WSJ0-mix dataset...')
 
-        with open('merl_path/tr_1.txt', 'r') as f:
+        with open(self.path + 'tr_1.txt', 'r') as f:
             train_A = f.readlines()
             train_A = list(map(lambda _: _[:-1], train_A))
-        with open('merl_path/tr_2.txt', 'r') as f:
+        with open(self.path + 'tr_2.txt', 'r') as f:
             train_B = f.readlines()
             train_B = list(map(lambda _: _[:-1], train_B))
-        with open('merl_path/cv_1.txt', 'r') as f:
+        with open(self.path + 'cv_1.txt', 'r') as f:
             valid_A = f.readlines()
             valid_A = list(map(lambda _: _[:-1], valid_A))
-        with open('merl_path/cv_2.txt', 'r') as f:
+        with open(self.path + 'cv_2.txt', 'r') as f:
             valid_B = f.readlines()
             valid_B = list(map(lambda _: _[:-1], valid_B))
-        with open('merl_path/tt_1.txt', 'r') as f:
+        with open(self.path + 'tt_1.txt', 'r') as f:
             test_A = f.readlines()
             test_A = list(map(lambda _: _[:-1], test_A))
-        with open('merl_path/tt_2.txt', 'r') as f:
+        with open(self.path + 'tt_2.txt', 'r') as f:
             test_B = f.readlines()
             test_B = list(map(lambda _: _[:-1], test_B))
 
@@ -63,10 +63,7 @@ class WSJ0():
                 self.sequences[set][spk] = sequences
         return self
 
-    def load_directory(self, directory_path,  spk):
-
-        filenames = directory_path
-
+    def load_directory(self, filenames, spk):
         speakers = []
         file_paths = []
         speech_onset_offset_indices = []

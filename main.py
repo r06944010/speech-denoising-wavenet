@@ -133,8 +133,11 @@ def test(config, cla):
     with open('spk_info.json') as f:
         spk_info = json.load(f)
     
-    snr = []
-    gender_stat = {'ch1':{'M':0,'F':0}, 'ch2':{'M':0,'F':0}}
+    sdr = []
+    n_output = config['training']['n_output'] if 'n_output' in config['training'] else 2
+    n_speaker = config['training']['n_speaker'] if 'n_speaker' in config['training'] else 2
+    gender_stat = {'ch'+str(i+1):{'M':0,'F':0} for i in range(n_output)}
+    # gender_stat = {'ch1':{'M':0,'F':0}, 'ch2':{'M':0,'F':0}}
 
     for filename in filenames:
         noisy_input = util.load_wav(cla.noisy_input_path + filename, config['dataset']['sample_rate'])
@@ -152,18 +155,19 @@ def test(config, cla):
 
         # print("Denoising: " + filename).
         condition_input = None
-        print(filename)
-        _snr, ch_gender = denoise.denoise_sample(model, input, condition_input, batch_size, output_filename_prefix,
-                                      config['dataset']['sample_rate'], output_folder_path, spk_gender=spk_gender,
+        print(filename, spk_gender)
+        _sdr, ch_gender = denoise.denoise_sample(model, input, condition_input, batch_size, output_filename_prefix,
+                                      config['dataset']['sample_rate'], n_speaker, n_output, output_folder_path, 
+                                      spk_gender=spk_gender,
                                       use_pit=cla.use_pit, pad=cla.zero_pad)
-        print(_snr)
-        print(ch_gender)
+        print('sdr = %f, %f' %(_sdr[0],_sdr[1]))
+        # print(ch_gender)
         for ch, stat in ch_gender.items():
             for gen, num in stat.items():
                 gender_stat[ch][gen] += num
-        snr.append(_snr)
-    snr = np.array(snr)
-    print('Testing SDR:', np.mean(snr))
+        sdr.append(_sdr)
+    sdr = np.array(sdr)
+    print('Testing SDR:', np.mean(sdr))
     print(gender_stat)
 
 def inference(config, cla):
