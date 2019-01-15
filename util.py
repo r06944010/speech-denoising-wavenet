@@ -30,7 +30,7 @@ def pit_loss(y_true, y_pred, l1_weight, l2_weight, m_l1_weight, m_l2_weight, sdr
     if sdr_w != 0:
         t = tf.tile(tf.expand_dims(y_true, pit_axis+1), [1,1,n_output,1])
         p = tf.tile(tf.expand_dims(y_pred, pit_axis), [1,n_speaker,1,1])
-        up = tf.reduce_sum(t*p, -1)
+        up = tf.abs(tf.reduce_sum(t*p, -1))
         down = tf.sqrt(tf.reduce_sum(tf.square(t), -1)) * tf.sqrt(tf.reduce_sum(tf.square(p), -1))
         loss_sets = tf.einsum('bij,pij->bp', -up/down, perms_onehot)
         sdr_loss = tf.reduce_min(loss_sets, axis=1)

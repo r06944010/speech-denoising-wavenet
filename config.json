@@ -4,7 +4,7 @@
         "in_memory_percentage": 1,
         "noise_only_percent": 0.0,
         "num_condition_classes": 119,
-        "path": "./merl_path/2spk/min/",
+        "path": "./merl_path/2spk/max/",
         "regain": 0.06,
         "sample_rate": 8000,
         "type": "wsj0-mix"
@@ -25,7 +25,7 @@
             }
         },
         "num_stacks": 2,
-        "target_field_length": 3201,
+        "target_field_length": 1601,
         "target_padding": 1
     },
     "optimizer": {
@@ -38,14 +38,14 @@
     "training": {
         "n_speaker":2,
         "n_output":4,
-        "mute_other_channel":true,
+        "mute_other_channel":false,
         "batch_size": 16,
         "early_stopping_patience": 10,
         "loss": {
             "out": {
-                "l1": 1,
+                "l1": 0,
                 "l2": 0,
-                "sdr": 0
+                "sdr": 1
             },
             "mix": {
                 "l1": 0,
@@ -59,6 +59,6 @@
         "num_train_samples": 20000,
         "path": "sessions/test",
         "verbosity": 1,
-        "use_condition": true
+        "use_condition": false
     }
 }

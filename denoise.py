@@ -14,7 +14,6 @@ def signal_to_distortion_ratio(x,y):
 
 def denoise_sample(model, input, condition_input, batch_size, output_filename_prefix, sample_rate, n_spk, n_channel,
                     output_path, save_wav=False, spk_gender=None, use_pit=False, pad=False):
-    pad = True 
     if pad:
         noisy_pad = np.zeros((model.half_receptive_field_length*2 + len(input['noisy'])))
         noisy_pad[model.half_receptive_field_length:model.half_receptive_field_length+len(input['noisy'])] = input['noisy']
@@ -96,6 +95,8 @@ def denoise_sample(model, input, condition_input, batch_size, output_filename_pr
     if use_pit == True:
         pit_output_1 = []
         pit_output_2 = []
+        pit_idx1 = []
+        pit_idx2 = []
         for f in range(num_fragments):
             c1 = valid_clean_signal_1[f*model.target_field_length:(f+1)*model.target_field_length]
             c2 = valid_clean_signal_2[f*model.target_field_length:(f+1)*model.target_field_length]
@@ -113,6 +114,8 @@ def denoise_sample(model, input, condition_input, batch_size, output_filename_pr
             
             pit_output_1 += o[best_perm[0]].tolist()
             pit_output_2 += o[best_perm[1]].tolist()
+            pit_idx1.append(best_perm[0])
+            pit_idx2.append(best_perm[1])
             # perm = np.argmin([np.sum(np.abs(c1-o1)+np.abs(c2-o2)), np.sum(np.abs(c1-o2)+np.abs(c2-o1))])
             # if perm == 0:
                 # ch_gender['ch1'][spk_gender[0]] += 1
@@ -140,7 +143,7 @@ def denoise_sample(model, input, condition_input, batch_size, output_filename_pr
         # s2 = signal_to_distortion_ratio(clean_wav[1], noisy_wav[1])
         # print(s1, s2)
    
-        return np.array([_sdr1, _sdr2]), ch_gender
+        return np.array([_sdr1, _sdr2]), ch_gender, [pit_idx1, pit_idx2]
     
     else:
         clean_wav = np.array([valid_clean_signal_1, valid_clean_signal_2])
@@ -157,7 +160,7 @@ def denoise_sample(model, input, condition_input, batch_size, output_filename_pr
         _sdr2, _sir, _sar, _popt = mir_eval.separation.bss_eval_sources(clean_wav[1], output[best_perm[1]])
 
         # noisy_wav = np.array([output_1, output_2])
-        return np.array([_sdr1, _sdr2]), ch_gender
+        return np.array([_sdr1, _sdr2]), ch_gender, best_perm
         # _sdr1, _sir, _sar, _popt = mir_eval.separation.bss_eval_sources(np.array(clean_wav[0]), np.array(noisy_wav[0]))
         # _sdr2, _sir, _sar, _popt = mir_eval.separation.bss_eval_sources(np.array(clean_wav[1]), np.array(noisy_wav[1]))
         # _sdr3, _sir, _sar, _popt = mir_eval.separation.bss_eval_sources(np.array(clean_wav[0]), np.array(noisy_wav[1]))

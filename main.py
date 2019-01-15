@@ -151,20 +151,27 @@ def test(config, cla):
         output_filename_prefix = filename[0:-4] + '_'
         spk1 = output_filename_prefix.split('_')[0][:3]
         spk2 = output_filename_prefix.split('_')[2][:3]
+        spk_name = [spk1, spk2]
         spk_gender = [spk_info[spk1], spk_info[spk2]]
 
         # print("Denoising: " + filename).
         condition_input = None
-        print(filename, spk_gender)
-        _sdr, ch_gender = denoise.denoise_sample(model, input, condition_input, batch_size, output_filename_prefix,
+        print(filename)
+        _sdr, ch_gender, pit_idx = denoise.denoise_sample(model, input, condition_input, batch_size, output_filename_prefix,
                                       config['dataset']['sample_rate'], n_speaker, n_output, output_folder_path, 
                                       spk_gender=spk_gender,
                                       use_pit=cla.use_pit, pad=cla.zero_pad)
-        print('sdr = %f, %f' %(_sdr[0],_sdr[1]))
+        # print('sdr = %f, %f' %(_sdr[0],_sdr[1]))
+        if spk_gender[0] == 'F' and spk_gender[1] == 'M':
+            for i in range(1, -1, -1):
+                print('{} {}: sdr={}, idx={}'.format(spk_gender[i], spk_name[i], _sdr[i], pit_idx[i]))
+        else:
+            for i in range(2):
+                print('{} {}: sdr={}, idx={}'.format(spk_gender[i], spk_name[i], _sdr[i], pit_idx[i]))
         # print(ch_gender)
-        for ch, stat in ch_gender.items():
-            for gen, num in stat.items():
-                gender_stat[ch][gen] += num
+        # for ch, stat in ch_gender.items():
+            # for gen, num in stat.items():
+                # gender_stat[ch][gen] += num
         sdr.append(_sdr)
     sdr = np.array(sdr)
     print('Testing SDR:', np.mean(sdr))
